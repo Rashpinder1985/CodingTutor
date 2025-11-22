@@ -5,7 +5,9 @@
 ✅ Git repository initialized  
 ✅ Initial commit made (commit hash: 7759d71)  
 ✅ All project files committed  
-✅ .gitignore configured (excludes venv, .env, generated files)
+✅ .gitignore configured (excludes venv, .env, generated files)  
+✅ **Connected to GitHub**: https://github.com/Rashpinder1985/CodingTutor  
+✅ **Code pushed to GitHub** (commit hash: 469eaca)
 
 ## Repository Contents
 
