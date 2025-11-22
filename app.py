@@ -242,12 +242,15 @@ def generate_concept():
         intermediate_count = 0
         advanced_count = 0
         
-        if 'beginner' in questions_data[concept_key]:
-            beginner_count = questions_data[concept_key]['beginner'].get('total_questions', 0)
-        if 'intermediate' in questions_data[concept_key]:
-            intermediate_count = questions_data[concept_key]['intermediate'].get('total_questions', 0)
-        if 'advanced' in questions_data[concept_key]:
-            advanced_count = questions_data[concept_key]['advanced'].get('total_questions', 0)
+        # The structure is nested: concept_key -> levels -> beginner/intermediate/advanced -> questions
+        if 'levels' in questions_data[concept_key]:
+            levels = questions_data[concept_key]['levels']
+            if 'beginner' in levels and 'questions' in levels['beginner']:
+                beginner_count = len(levels['beginner']['questions'])
+            if 'intermediate' in levels and 'questions' in levels['intermediate']:
+                intermediate_count = len(levels['intermediate']['questions'])
+            if 'advanced' in levels and 'questions' in levels['advanced']:
+                advanced_count = len(levels['advanced']['questions'])
         
         # Return response
         return jsonify({
