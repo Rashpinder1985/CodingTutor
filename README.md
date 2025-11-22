@@ -71,51 +71,43 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### Option 1: Use Google Forms Export (Easiest!)
+### Web Interface (Recommended!)
 
-1. Export your quiz results from Google Forms as Excel (.xlsx)
-2. Run the tool directly:
+1. Start the Flask server:
 ```bash
-python3 main.py --input MyQuizResults.xlsx
+python3 app.py
 ```
 
-The system automatically detects the format and converts it! See [GOOGLE_FORMS_GUIDE.md](GOOGLE_FORMS_GUIDE.md) for details.
+2. Open your browser to: **http://localhost:5000**
 
-### Option 2: Use Normalized Format
+3. Upload your exit ticket file:
+   - Google Forms export (automatic conversion)
+   - Excel file in normalized format
+   - Sample file: `Exit_response.xlsx` or `sample_exit_ticket.xlsx`
 
-Generate sample data to test the tool:
-```bash
-python3 create_sample_data.py
-```
+4. Select concepts and generate questions one at a time
 
-Then generate questions:
-```bash
-python3 main.py --input sample_exit_ticket.xlsx
-```
+5. Download JSON files for each concept
 
-For detailed usage instructions, see [USAGE_GUIDE.md](USAGE_GUIDE.md).
+For detailed usage, see [GOOGLE_FORMS_GUIDE.md](GOOGLE_FORMS_GUIDE.md) and [USAGE_GUIDE.md](USAGE_GUIDE.md).
 
 ## Usage
 
-Basic usage:
+### Via Web Interface (Recommended)
+
 ```bash
-python main.py --input exit_ticket_responses.xlsx
+python3 app.py
+# Open http://localhost:5000
 ```
 
-With custom output file:
-```bash
-python main.py --input exit_ticket_responses.xlsx --output my_questions.json
-```
+### Features
 
-Filter by specific concept:
-```bash
-python main.py --input exit_ticket_responses.xlsx --concept "loops"
-```
-
-Filter by programming language:
-```bash
-python main.py --input exit_ticket_responses.xlsx --language python
-```
+- ✅ Upload Google Forms exports directly
+- ✅ Automatic format detection and conversion
+- ✅ Select specific concepts to generate questions
+- ✅ Download questions immediately after generation
+- ✅ Real-time progress tracking
+- ✅ Beautiful, modern UI
 
 ## Input Format
 
@@ -210,19 +202,12 @@ Convert Google Forms exports to normalized format:
 python convert_format.py --input Exit_response.xlsx --output normalized.xlsx
 ```
 
-### Web Interface
-
-Start the web interface for easy file upload and download:
-```bash
-python web_app.py
-```
-Then open http://localhost:5000 in your browser.
-
 ## Documentation
 
+- **[INSTALLATION.md](INSTALLATION.md)** - Complete setup guide
 - **[GOOGLE_FORMS_GUIDE.md](GOOGLE_FORMS_GUIDE.md)** - 🆕 Using Google Forms/Quiz exports
 - **[USAGE_GUIDE.md](USAGE_GUIDE.md)** - Detailed usage instructions
-- **[WEB_UI_GUIDE.md](WEB_UI_GUIDE.md)** - Web interface guide
+- **[CONCEPT_BY_CONCEPT_CHANGES.md](CONCEPT_BY_CONCEPT_CHANGES.md)** - New features explained
 - **[PLATFORM_UPLOAD_GUIDE.md](PLATFORM_UPLOAD_GUIDE.md)** - Export to learning platforms
 - **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - Codebase organization
 - **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Technical details
