@@ -27,19 +27,31 @@ class LLMGenerator:
         self.config = config
         self.llm_config = config.get('llm', {})
         
-        # Initialize OpenAI client
-        api_key = os.getenv(self.llm_config.get('api_key_env', 'OPENAI_API_KEY'))
-        if not api_key:
-            raise ValueError(f"API key not found. Set {self.llm_config.get('api_key_env', 'OPENAI_API_KEY')} environment variable.")
+        # Check if using Ollama or OpenAI
+        self.provider = self.llm_config.get('provider', 'openai').lower()
         
-        self.client = OpenAI(api_key=api_key)
-        self.model = self.llm_config.get('model', 'gpt-4')
+        if self.provider == 'ollama':
+            # Initialize Ollama client (uses OpenAI-compatible API)
+            self.client = OpenAI(
+                base_url='http://localhost:11434/v1',
+                api_key='ollama'  # Ollama doesn't need a real API key
+            )
+            self.model = self.llm_config.get('model', 'llama3.2')
+            logger.info(f"Initialized LLM generator with Ollama model: {self.model}")
+        else:
+            # Initialize OpenAI client
+            api_key = os.getenv(self.llm_config.get('api_key_env', 'OPENAI_API_KEY'))
+            if not api_key:
+                raise ValueError(f"API key not found. Set {self.llm_config.get('api_key_env', 'OPENAI_API_KEY')} environment variable.")
+            
+            self.client = OpenAI(api_key=api_key)
+            self.model = self.llm_config.get('model', 'gpt-4')
+            logger.info(f"Initialized LLM generator with OpenAI model: {self.model}")
+        
         self.temperature = self.llm_config.get('temperature', 0.7)
         self.max_tokens = self.llm_config.get('max_tokens', 2000)
         self.retry_attempts = self.llm_config.get('retry_attempts', 3)
         self.retry_delay = self.llm_config.get('retry_delay', 2)
-        
-        logger.info(f"Initialized LLM generator with model: {self.model}")
     
     def _make_api_call(self, messages: List[Dict], temperature: Optional[float] = None) -> str:
         """
