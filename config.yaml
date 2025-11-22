@@ -1,0 +1,101 @@
+# Configuration for Adaptive Question Generation Tool
+
+# LLM Configuration
+llm:
+  provider: "openai"  # openai, anthropic, etc.
+  model: "gpt-4"
+  api_key_env: "OPENAI_API_KEY"  # Environment variable name
+  temperature: 0.7
+  max_tokens: 2000
+  retry_attempts: 3
+  retry_delay: 2  # seconds
+
+# Question Generation Limits
+question_limits:
+  beginner:
+    min: 3
+    max: 5
+    default: 4
+  intermediate:
+    min: 3
+    max: 4
+    default: 3
+  advanced:
+    min: 2
+    max: 3
+    default: 2
+
+# Progression Thresholds
+progression:
+  beginner_to_intermediate: 3  # Number of correct answers needed
+  intermediate_to_advanced: 3
+  max_attempts_per_concept: 10
+
+# Supported Programming Languages
+programming_languages:
+  - python
+  - java
+  - cpp
+  - javascript
+
+# Course Categories
+course_categories:
+  - programming
+  - non-programming
+
+# Learning Resources
+learning_resources:
+  programming:
+    python:
+      - name: "Python Official Documentation"
+        url: "https://docs.python.org/3/"
+      - name: "Real Python Tutorials"
+        url: "https://realpython.com/"
+      - name: "Python Exercises on HackerRank"
+        url: "https://www.hackerrank.com/domains/python"
+      - name: "LeetCode Python Problems"
+        url: "https://leetcode.com/problemset/all/?difficulty=EASY&page=1&topicSlugs=python"
+    java:
+      - name: "Java Official Documentation"
+        url: "https://docs.oracle.com/en/java/"
+      - name: "Java Tutorial - W3Schools"
+        url: "https://www.w3schools.com/java/"
+      - name: "Java Exercises on HackerRank"
+        url: "https://www.hackerrank.com/domains/java"
+      - name: "Codecademy Java Course"
+        url: "https://www.codecademy.com/learn/learn-java"
+    cpp:
+      - name: "C++ Reference"
+        url: "https://en.cppreference.com/"
+      - name: "Learn C++ - LearnCpp.com"
+        url: "https://www.learncpp.com/"
+      - name: "C++ on HackerRank"
+        url: "https://www.hackerrank.com/domains/cpp"
+      - name: "GeeksforGeeks C++ Programs"
+        url: "https://www.geeksforgeeks.org/c-plus-plus/"
+    javascript:
+      - name: "MDN Web Docs - JavaScript"
+        url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript"
+      - name: "JavaScript.info"
+        url: "https://javascript.info/"
+      - name: "JavaScript Algorithms on HackerRank"
+        url: "https://www.hackerrank.com/domains/algorithms"
+      - name: "freeCodeCamp JavaScript"
+        url: "https://www.freecodecamp.org/learn/javascript-algorithms-and-data-structures/"
+  non-programming:
+    general:
+      - name: "Khan Academy"
+        url: "https://www.khanacademy.org/"
+      - name: "Coursera Free Courses"
+        url: "https://www.coursera.org/courses?query=free"
+      - name: "MIT OpenCourseWare"
+        url: "https://ocw.mit.edu/"
+      - name: "edX Free Courses"
+        url: "https://www.edx.org/search?q=free"
+
+# Output Configuration
+output:
+  default_filename: "generated_questions.json"
+  indent: 2
+  include_metadata: true
+
