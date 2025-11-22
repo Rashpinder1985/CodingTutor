@@ -1,11 +1,13 @@
 """
 Input Processing Module
 Parses Excel files containing student exit ticket responses and identifies areas of struggle.
+Supports both normalized format and Google Forms/Quiz format.
 """
 
 import pandas as pd
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 import logging
+from src.format_converter import FormatConverter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,28 +26,50 @@ class InputProcessor:
         'Course_Category'
     ]
     
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, question_mapping: Optional[Dict] = None):
         """
         Initialize the input processor.
         
         Args:
             file_path: Path to the Excel file containing student responses
+            question_mapping: Optional mapping for Google Forms question conversion
         """
         self.file_path = file_path
+        self.question_mapping = question_mapping
         self.df = None
         self.incorrect_responses = None
         self.concepts_by_category = {}
+        self.original_format = None
         
     def load_and_validate(self) -> bool:
         """
         Load the Excel file and validate its structure.
+        Auto-detects format and converts if needed.
         
         Returns:
             True if valid, raises exception otherwise
         """
         try:
-            self.df = pd.read_excel(self.file_path)
-            logger.info(f"Loaded {len(self.df)} records from {self.file_path}")
+            # Try to auto-detect and convert format if needed
+            converter = FormatConverter(self.file_path, self.question_mapping)
+            
+            try:
+                self.original_format = converter.detect_format()
+                logger.info(f"Detected format: {self.original_format}")
+                
+                # Convert to normalized format
+                self.df = converter.convert()
+                
+                if self.original_format == 'google_forms':
+                    logger.info(f"Converted from Google Forms format: {len(self.df)} records")
+                else:
+                    logger.info(f"Loaded {len(self.df)} records from {self.file_path}")
+                    
+            except ValueError as e:
+                # If format detection fails, try loading as normalized format
+                logger.warning(f"Format detection failed: {e}. Trying to load as normalized format...")
+                self.df = pd.read_excel(self.file_path)
+                self.original_format = 'normalized'
             
             # Validate required columns
             missing_cols = set(self.REQUIRED_COLUMNS) - set(self.df.columns)

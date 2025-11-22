@@ -4,7 +4,7 @@ Adaptive Question Generator - Simple Web Interface
 Flask-based web application for teachers to upload exit tickets and download questions.
 """
 
-from flask import Flask, render_template, request, jsonify, send_file, flash, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_file, flash, redirect, url_for, session
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 import os
@@ -13,6 +13,7 @@ import tempfile
 import json
 import zipfile
 import io
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -90,7 +91,7 @@ def index():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    """Handle file upload and question generation."""
+    """Handle file upload and analysis (NO question generation)."""
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     
@@ -111,9 +112,6 @@ def upload_file():
         # Get filters
         concept_filter = request.form.get('concept_filter')
         language_filter = request.form.get('language_filter')
-        
-        # Load config
-        config = load_config()
         
         # Process input
         processor = InputProcessor(filepath)
@@ -136,29 +134,29 @@ def upload_file():
             os.unlink(filepath)
             return jsonify({'error': 'No concepts match the selected filters.'}), 400
         
-        # Generate questions
-        generator = QuestionGenerator(config)
-        questions_data = generator.generate_all_concepts(concepts_data)
-        
-        # Format output
+        # Get summary
         summary = processor.get_summary()
-        formatter = OutputFormatter(config)
-        output_data = formatter.format_output(questions_data, filename, summary)
         
-        # Save output
-        output_filename = f"questions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        # Generate unique session ID and save processed data
+        session_id = str(uuid.uuid4())
+        session_data = {
+            'concepts_data': concepts_data,
+            'summary': summary,
+            'filename': filename
+        }
         
-        with open(output_path, 'w') as f:
-            json.dump(output_data, f, indent=2)
+        # Save to temp file
+        session_file = os.path.join(app.config['UPLOAD_FOLDER'], f'session_{session_id}.json')
+        with open(session_file, 'w') as f:
+            json.dump(session_data, f)
         
         # Clean up uploaded file
         os.unlink(filepath)
         
-        # Create response with summary
+        # Create response with concept list (NO questions generated yet)
         response = {
             'success': True,
-            'output_file': output_filename,
+            'session_id': session_id,
             'summary': {
                 'total_concepts': summary['total_concepts'],
                 'affected_students': summary['affected_students'],
@@ -168,18 +166,16 @@ def upload_file():
             'concepts': {}
         }
         
-        # Add concept details
-        for concept_key, concept_data in output_data['concepts'].items():
+        # Add concept details WITHOUT question counts
+        for concept_key, concept_data in concepts_data.items():
             response['concepts'][concept_key] = {
+                'key': concept_key,
                 'name': concept_data['concept_name'],
                 'category': concept_data['course_category'],
                 'language': concept_data.get('programming_language'),
                 'students': concept_data['affected_students'],
-                'question_counts': {
-                    'beginner': concept_data['levels']['beginner']['total_questions'],
-                    'intermediate': concept_data['levels']['intermediate']['total_questions'],
-                    'advanced': concept_data['levels']['advanced']['total_questions']
-                }
+                'student_count': len(concept_data['affected_students']),
+                'status': 'pending'
             }
         
         return jsonify(response)
@@ -188,6 +184,88 @@ def upload_file():
         if os.path.exists(filepath):
             os.unlink(filepath)
         return jsonify({'error': f'Error processing file: {str(e)}'}), 500
+
+@app.route('/generate-concept', methods=['POST'])
+def generate_concept():
+    """Generate questions for a single concept."""
+    try:
+        data = request.get_json()
+        session_id = data.get('session_id')
+        concept_key = data.get('concept_key')
+        
+        if not session_id or not concept_key:
+            return jsonify({'error': 'Missing session_id or concept_key'}), 400
+        
+        # Load session data
+        session_file = os.path.join(app.config['UPLOAD_FOLDER'], f'session_{session_id}.json')
+        if not os.path.exists(session_file):
+            return jsonify({'error': 'Session expired or invalid'}), 404
+        
+        with open(session_file, 'r') as f:
+            session_data = json.load(f)
+        
+        concepts_data = session_data['concepts_data']
+        
+        if concept_key not in concepts_data:
+            return jsonify({'error': f'Concept {concept_key} not found'}), 404
+        
+        # Load config
+        config = load_config()
+        
+        # Generate questions for ONLY this concept
+        single_concept_data = {concept_key: concepts_data[concept_key]}
+        generator = QuestionGenerator(config)
+        questions_data = generator.generate_all_concepts(single_concept_data)
+        
+        if not questions_data or concept_key not in questions_data:
+            return jsonify({'error': 'Failed to generate questions'}), 500
+        
+        # Format output for single concept
+        concept_output = {
+            'concept_key': concept_key,
+            'concept_name': concepts_data[concept_key]['concept_name'],
+            'category': concepts_data[concept_key]['course_category'],
+            'language': concepts_data[concept_key].get('programming_language'),
+            'affected_students': concepts_data[concept_key]['affected_students'],
+            'levels': questions_data[concept_key]
+        }
+        
+        # Save to file
+        output_filename = f"concept_{concept_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        
+        with open(output_path, 'w') as f:
+            json.dump(concept_output, f, indent=2)
+        
+        # Extract question counts safely
+        beginner_count = 0
+        intermediate_count = 0
+        advanced_count = 0
+        
+        if 'beginner' in questions_data[concept_key]:
+            beginner_count = questions_data[concept_key]['beginner'].get('total_questions', 0)
+        if 'intermediate' in questions_data[concept_key]:
+            intermediate_count = questions_data[concept_key]['intermediate'].get('total_questions', 0)
+        if 'advanced' in questions_data[concept_key]:
+            advanced_count = questions_data[concept_key]['advanced'].get('total_questions', 0)
+        
+        # Return response
+        return jsonify({
+            'success': True,
+            'concept_key': concept_key,
+            'output_file': output_filename,
+            'question_counts': {
+                'beginner': beginner_count,
+                'intermediate': intermediate_count,
+                'advanced': advanced_count
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"ERROR in generate_concept: {error_details}")
+        return jsonify({'error': f'Error generating questions: {str(e)}'}), 500
 
 @app.route('/download/<filename>')
 def download_file(filename):

@@ -6,12 +6,94 @@ Interfaces with Large Language Models to generate question variations and conten
 import os
 import time
 import logging
+import re
 from typing import Dict, List, Optional
 from openai import OpenAI
 import json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def fix_json_string(json_str: str) -> str:
+    """
+    Attempt to fix common JSON formatting issues from LLM responses.
+    
+    Args:
+        json_str: Potentially malformed JSON string
+        
+    Returns:
+        Fixed JSON string
+    """
+    # Remove markdown code blocks if present
+    json_str = re.sub(r'```json\s*', '', json_str)
+    json_str = re.sub(r'```\s*$', '', json_str)
+    
+    # Fix trailing commas before closing braces/brackets
+    json_str = re.sub(r',\s*}', '}', json_str)
+    json_str = re.sub(r',\s*]', ']', json_str)
+    
+    # Fix missing commas between properties (common LLM error)
+    json_str = re.sub(r'"\s*\n\s*"', '",\n"', json_str)
+    
+    # Fix single quotes to double quotes
+    json_str = re.sub(r"'([^']*)':", r'"\1":', json_str)
+    
+    return json_str.strip()
+
+
+def parse_json_response(response: str, logger_instance=None) -> Optional[Dict]:
+    """
+    Robustly parse JSON from LLM response with multiple fallback strategies.
+    
+    Args:
+        response: Raw response from LLM
+        logger_instance: Logger instance for logging
+        
+    Returns:
+        Parsed JSON dict or None if all attempts fail
+    """
+    # Strategy 1: Try direct parsing
+    try:
+        return json.loads(response)
+    except json.JSONDecodeError:
+        pass
+    
+    # Strategy 2: Extract JSON block and try again
+    try:
+        json_start = response.find('{')
+        json_end = response.rfind('}') + 1
+        if json_start != -1 and json_end > json_start:
+            json_str = response[json_start:json_end]
+            return json.loads(json_str)
+    except json.JSONDecodeError:
+        pass
+    
+    # Strategy 3: Try fixing common issues and parse again
+    try:
+        json_start = response.find('{')
+        json_end = response.rfind('}') + 1
+        if json_start != -1 and json_end > json_start:
+            json_str = response[json_start:json_end]
+            fixed_json = fix_json_string(json_str)
+            return json.loads(fixed_json)
+    except json.JSONDecodeError as e:
+        if logger_instance:
+            # Only log as warning, not error, since we have fallback handling
+            logger_instance.debug(f"JSON parse failed after fixes: {e}")
+    
+    # Strategy 4: Try to extract key-value pairs manually (last resort)
+    try:
+        result = {}
+        # Look for common patterns like "key": "value" or "key": {...}
+        for match in re.finditer(r'"(\w+)":\s*"([^"]*)"', response):
+            result[match.group(1)] = match.group(2)
+        if result:
+            return result
+    except Exception:
+        pass
+    
+    return None
 
 
 class LLMGenerator:
@@ -125,36 +207,22 @@ Return ONLY a JSON object with this structure:
         
         response = self._make_api_call(messages)
         
-        # Parse JSON response
-        try:
-            # Extract JSON from response (sometimes LLM adds extra text)
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                question_data = json.loads(json_str)
-            else:
-                question_data = json.loads(response)
-            
+        # Parse JSON response with robust error handling
+        question_data = parse_json_response(response, logger)
+        
+        if question_data:
+            # Successfully parsed
             question_data['type'] = 'mcq'
             question_data['difficulty'] = template['difficulty']
             question_data['concept'] = concept
             if language:
                 question_data['language'] = language
-            
             return question_data
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            logger.error(f"Response was: {response}")
-            # Return a basic structure
-            return {
-                "question": response,
-                "type": "mcq",
-                "difficulty": template['difficulty'],
-                "concept": concept,
-                "note": "Failed to parse structured response"
-            }
+        else:
+            # Stop immediately if we can't parse the response
+            error_msg = f"Failed to parse LLM response for {concept}. Response: {response[:200]}..."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
     
     def generate_code_snippet_question(self, template: Dict, concept: str, language: str) -> Dict:
         """
@@ -197,32 +265,18 @@ Return ONLY a JSON object with this structure:
         
         response = self._make_api_call(messages)
         
-        try:
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                question_data = json.loads(json_str)
-            else:
-                question_data = json.loads(response)
-            
+        question_data = parse_json_response(response, logger)
+        
+        if question_data:
             question_data['type'] = template.get('type', 'code_snippet')
             question_data['difficulty'] = template['difficulty']
             question_data['concept'] = concept
             question_data['language'] = language
-            
             return question_data
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            return {
-                "question": response,
-                "type": template.get('type', 'code_snippet'),
-                "difficulty": template['difficulty'],
-                "concept": concept,
-                "language": language,
-                "note": "Failed to parse structured response"
-            }
+        else:
+            error_msg = f"Failed to parse LLM response for {concept}. Response: {response[:200]}..."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
     
     def generate_programming_problem(self, template: Dict, concept: str, language: str) -> Dict:
         """
@@ -269,33 +323,18 @@ Return ONLY a JSON object with this structure:
         
         response = self._make_api_call(messages, temperature=0.8)
         
-        try:
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                question_data = json.loads(json_str)
-            else:
-                question_data = json.loads(response)
-            
+        question_data = parse_json_response(response, logger)
+        
+        if question_data:
             question_data['type'] = template.get('type', 'implementation')
             question_data['difficulty'] = template['difficulty']
             question_data['concept'] = concept
             question_data['language'] = language
-            
             return question_data
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            return {
-                "title": f"Problem on {concept}",
-                "description": response,
-                "type": template.get('type', 'implementation'),
-                "difficulty": template['difficulty'],
-                "concept": concept,
-                "language": language,
-                "note": "Failed to parse structured response"
-            }
+        else:
+            error_msg = f"Failed to parse LLM response for {concept}. Response: {response[:200]}..."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
     
     def generate_scenario_question(self, template: Dict, concept: str) -> Dict:
         """
@@ -335,30 +374,17 @@ Return ONLY a JSON object with this structure:
         
         response = self._make_api_call(messages)
         
-        try:
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                question_data = json.loads(json_str)
-            else:
-                question_data = json.loads(response)
-            
+        question_data = parse_json_response(response, logger)
+        
+        if question_data:
             question_data['type'] = template.get('type', 'scenario_mcq')
             question_data['difficulty'] = template['difficulty']
             question_data['concept'] = concept
-            
             return question_data
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            return {
-                "question": response,
-                "type": template.get('type', 'scenario_mcq'),
-                "difficulty": template['difficulty'],
-                "concept": concept,
-                "note": "Failed to parse structured response"
-            }
+        else:
+            error_msg = f"Failed to parse LLM response for {concept}. Response: {response[:200]}..."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
     
     def generate_activity_question(self, template: Dict, concept: str) -> Dict:
         """
@@ -400,31 +426,17 @@ Return ONLY a JSON object with this structure:
         
         response = self._make_api_call(messages, temperature=0.8)
         
-        try:
-            json_start = response.find('{')
-            json_end = response.rfind('}') + 1
-            if json_start != -1 and json_end > json_start:
-                json_str = response[json_start:json_end]
-                question_data = json.loads(json_str)
-            else:
-                question_data = json.loads(response)
-            
+        question_data = parse_json_response(response, logger)
+        
+        if question_data:
             question_data['type'] = template.get('type', 'activity')
             question_data['difficulty'] = template['difficulty']
             question_data['concept'] = concept
-            
             return question_data
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            return {
-                "title": f"Activity on {concept}",
-                "description": response,
-                "type": template.get('type', 'activity'),
-                "difficulty": template['difficulty'],
-                "concept": concept,
-                "note": "Failed to parse structured response"
-            }
+        else:
+            error_msg = f"Failed to parse LLM response for {concept}. Response: {response[:200]}..."
+            logger.error(error_msg)
+            raise ValueError(error_msg)
     
     def generate_feedback(self, question: Dict, concept: str) -> str:
         """

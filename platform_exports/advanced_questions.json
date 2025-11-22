@@ -1,0 +1,117 @@
+{
+  "level": "advanced",
+  "total_questions": 2,
+  "generated_at": "2025-11-22T15:02:18.712286",
+  "questions": [
+    {
+      "id": "advanced_python_1",
+      "concept": "Python Loops",
+      "category": "programming",
+      "language": "python",
+      "difficulty": "advanced",
+      "question": "Problem on Python Loops",
+      "type": "optimization",
+      "feedback": {
+        "approach": "",
+        "hints": [],
+        "test_case_tips": [
+          "Always test with the provided test cases first",
+          "Think about edge cases (empty input, single element, maximum values)",
+          "Verify your solution handles all constraints",
+          "Test with both typical and unusual inputs"
+        ],
+        "optimization_tips": [
+          "Consider the time and space complexity of your solution",
+          "Look for opportunities to use data structures efficiently",
+          "Think about how Python Loops can be applied optimally",
+          "Can you reduce redundant computations?"
+        ],
+        "common_pitfalls": [
+          "Not fully understanding how Python Loops works in python",
+          "Forgetting to handle edge cases",
+          "Off-by-one errors in loops or array indexing",
+          "Not considering the constraints properly"
+        ]
+      },
+      "learning_resources": [
+        {
+          "name": "Python Official Documentation",
+          "url": "https://docs.python.org/3/"
+        },
+        {
+          "name": "Real Python Tutorials",
+          "url": "https://realpython.com/"
+        },
+        {
+          "name": "Python Exercises on HackerRank",
+          "url": "https://www.hackerrank.com/domains/python"
+        },
+        {
+          "name": "LeetCode Python Problems",
+          "url": "https://leetcode.com/problemset/all/?difficulty=EASY&page=1&topicSlugs=python"
+        },
+        {
+          "name": "Understanding Loops in Python",
+          "url": "https://www.google.com/search?q=python+loops+tutorial"
+        }
+      ]
+    },
+    {
+      "id": "advanced_python_2",
+      "concept": "Python Loops",
+      "category": "programming",
+      "language": "python",
+      "difficulty": "advanced",
+      "question": "Matrix Chain Multiplication with Loops",
+      "type": "algorithm_implementation",
+      "feedback": {
+        "approach": "Dynamic Programming with Nested Loops",
+        "hints": [
+          "Use dynamic programming to store the results of subproblems.",
+          "Implement nested loops to iterate over the matrices and perform multiplications.",
+          "Consider using memoization to optimize performance."
+        ],
+        "test_case_tips": [
+          "Always test with the provided test cases first",
+          "Think about edge cases (empty input, single element, maximum values)",
+          "Verify your solution handles all constraints",
+          "Test with both typical and unusual inputs"
+        ],
+        "optimization_tips": [
+          "Consider the time and space complexity of your solution",
+          "Look for opportunities to use data structures efficiently",
+          "Think about how Python Loops can be applied optimally",
+          "Can you reduce redundant computations?"
+        ],
+        "common_pitfalls": [
+          "Not fully understanding how Python Loops works in python",
+          "Forgetting to handle edge cases",
+          "Off-by-one errors in loops or array indexing",
+          "Not considering the constraints properly"
+        ]
+      },
+      "learning_resources": [
+        {
+          "name": "Python Official Documentation",
+          "url": "https://docs.python.org/3/"
+        },
+        {
+          "name": "Real Python Tutorials",
+          "url": "https://realpython.com/"
+        },
+        {
+          "name": "Python Exercises on HackerRank",
+          "url": "https://www.hackerrank.com/domains/python"
+        },
+        {
+          "name": "LeetCode Python Problems",
+          "url": "https://leetcode.com/problemset/all/?difficulty=EASY&page=1&topicSlugs=python"
+        },
+        {
+          "name": "Understanding Loops in Python",
+          "url": "https://www.google.com/search?q=python+loops+tutorial"
+        }
+      ]
+    }
+  ]
+}

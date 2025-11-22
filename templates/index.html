@@ -67,6 +67,35 @@
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .concept-info {
+            flex-grow: 1;
+        }
+        .concept-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .status-pending {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .status-generating {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+        .status-complete {
+            background-color: #28a745;
+            color: #fff;
         }
         .spinner-container {
             text-align: center;
@@ -172,18 +201,18 @@
                     <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <h5 class="mt-3">Generating Questions...</h5>
-                    <p class="text-muted">This may take a few minutes. Please wait...</p>
+                    <h5 class="mt-3">Processing File...</h5>
+                    <p class="text-muted">Analyzing exit tickets...</p>
                 </div>
             </div>
         </div>
 
         <!-- Results -->
         <div id="resultsCard" class="card result-card d-none">
-            <h5 class="card-title"><i class="bi bi-check-circle-fill text-success"></i> Questions Generated Successfully!</h5>
+            <h5 class="card-title"><i class="bi bi-check-circle-fill text-success"></i> File Processed Successfully!</h5>
             <hr>
             
-            <div class="alert alert-success">
+            <div class="alert alert-info">
                 <strong>Summary:</strong>
                 <ul class="mb-0 mt-2">
                     <li>Total Concepts: <strong id="totalConcepts">0</strong></li>
@@ -193,21 +222,12 @@
                 </ul>
             </div>
 
-            <h6 class="mt-4">Concepts Breakdown:</h6>
+            <h6 class="mt-4">Select Concepts to Generate Questions:</h6>
+            <p class="text-muted small">Click "Generate" to create practice questions for each concept. Questions will be available for download immediately after generation.</p>
             <div id="conceptsList"></div>
 
-            <h6 class="mt-4">Download Options:</h6>
-            <div class="d-grid gap-2 mt-3">
-                <a href="#" id="downloadComplete" class="btn btn-success btn-lg">
-                    <i class="bi bi-download"></i> Download Complete Output (JSON)
-                </a>
-                <a href="#" id="downloadAll" class="btn btn-primary btn-lg">
-                    <i class="bi bi-file-zip"></i> Download All Formats (ZIP)
-                </a>
-            </div>
-
-            <button class="btn btn-outline-secondary mt-3 w-100" onclick="location.reload()">
-                <i class="bi bi-arrow-clockwise"></i> Generate More Questions
+            <button class="btn btn-outline-secondary mt-4 w-100" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise"></i> Process Another File
             </button>
         </div>
 
@@ -237,6 +257,9 @@
         const uploadForm = document.getElementById('uploadForm');
         const loadingCard = document.getElementById('loadingCard');
         const resultsCard = document.getElementById('resultsCard');
+
+        let currentSessionId = null;
+        let conceptsData = {};
 
         // Click to upload
         uploadZone.addEventListener('click', () => fileInput.click());
@@ -293,6 +316,10 @@
                     throw new Error(data.error || 'Unknown error');
                 }
 
+                // Store session ID and concepts data
+                currentSessionId = data.session_id;
+                conceptsData = data.concepts;
+
                 // Hide loading
                 loadingCard.classList.add('d-none');
 
@@ -314,29 +341,91 @@
             document.getElementById('progConcepts').textContent = data.summary.programming_concepts;
             document.getElementById('nonProgConcepts').textContent = data.summary.non_programming_concepts;
 
-            // Concepts
+            // Display concepts list
+            displayConceptsList(data.concepts);
+        }
+
+        function displayConceptsList(concepts) {
             const conceptsList = document.getElementById('conceptsList');
             conceptsList.innerHTML = '';
 
-            for (const [key, concept] of Object.entries(data.concepts)) {
+            for (const [key, concept] of Object.entries(concepts)) {
                 const conceptItem = document.createElement('div');
                 conceptItem.className = 'concept-item';
+                conceptItem.id = `concept-${key}`;
+                
                 conceptItem.innerHTML = `
-                    <strong>${concept.name}</strong>
-                    ${concept.language ? `<span class="badge bg-secondary">${concept.language}</span>` : ''}
-                    <br>
-                    <small class="text-muted">
-                        Students: ${concept.students.join(', ')} |
-                        Questions: ${concept.question_counts.beginner + concept.question_counts.intermediate + concept.question_counts.advanced}
-                        (Beginner: ${concept.question_counts.beginner}, Intermediate: ${concept.question_counts.intermediate}, Advanced: ${concept.question_counts.advanced})
-                    </small>
+                    <div class="concept-info">
+                        <strong>${concept.name}</strong>
+                        ${concept.language ? `<span class="badge bg-secondary ms-2">${concept.language}</span>` : ''}
+                        <br>
+                        <small class="text-muted">
+                            Students affected: ${concept.student_count} | 
+                            ${concept.students.slice(0, 3).join(', ')}${concept.students.length > 3 ? '...' : ''}
+                        </small>
+                    </div>
+                    <div class="concept-actions">
+                        <span class="status-badge status-pending" id="status-${key}">Pending</span>
+                        <button class="btn btn-primary btn-sm" id="btn-${key}" onclick="generateSingleConcept('${key}')">
+                            <i class="bi bi-magic"></i> Generate
+                        </button>
+                        <a href="#" class="btn btn-success btn-sm d-none" id="download-${key}">
+                            <i class="bi bi-download"></i> Download
+                        </a>
+                    </div>
                 `;
                 conceptsList.appendChild(conceptItem);
             }
+        }
 
-            // Download links
-            document.getElementById('downloadComplete').href = `/download/${data.output_file}`;
-            document.getElementById('downloadAll').href = `/download-all/${data.output_file}`;
+        async function generateSingleConcept(conceptKey) {
+            const button = document.getElementById(`btn-${conceptKey}`);
+            const status = document.getElementById(`status-${conceptKey}`);
+            const downloadBtn = document.getElementById(`download-${conceptKey}`);
+
+            // Update UI
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
+            status.textContent = 'Generating';
+            status.className = 'status-badge status-generating';
+
+            try {
+                const response = await fetch('/generate-concept', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        concept_key: conceptKey
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Unknown error');
+                }
+
+                // Update UI - Success
+                button.classList.add('d-none');
+                status.textContent = 'Complete';
+                status.className = 'status-badge status-complete';
+                downloadBtn.href = `/download/${data.output_file}`;
+                downloadBtn.classList.remove('d-none');
+
+                // Show success message
+                const conceptInfo = conceptsData[conceptKey];
+                alert(`✓ Generated ${data.question_counts.beginner + data.question_counts.intermediate + data.question_counts.advanced} questions for "${conceptInfo.name}"!\n\nBeginner: ${data.question_counts.beginner}\nIntermediate: ${data.question_counts.intermediate}\nAdvanced: ${data.question_counts.advanced}`);
+
+            } catch (error) {
+                // Update UI - Error
+                button.disabled = false;
+                button.innerHTML = '<i class="bi bi-magic"></i> Retry';
+                status.textContent = 'Failed';
+                status.className = 'status-badge bg-danger text-white';
+                alert('Error: ' + error.message);
+            }
         }
     </script>
 </body>

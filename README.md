@@ -1,15 +1,50 @@
 # Adaptive Question Generation Tool for Teachers
 
-An intelligent CLI tool that analyzes student exit ticket responses and generates personalized, multi-level practice questions to help students build conceptual proficiency.
+An intelligent web application that analyzes student exit ticket responses and generates personalized, multi-level practice questions to help students build conceptual proficiency.
 
-## Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-- **Adaptive Question Generation**: Generates questions at three difficulty levels (beginner, intermediate, advanced)
-- **Multi-Language Support**: Supports Python, Java, C++, and JavaScript for programming courses
-- **Hybrid Approach**: Combines question templates with LLM-powered variations for diverse questions
-- **Comprehensive Feedback**: Provides detailed explanations and feedback for each question
-- **Learning Resources**: Suggests curated open-source learning materials
-- **Concept-Based Grouping**: Organizes questions by concepts where students struggled
+## 🚀 Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/rashpinderkaur/Agent_Compute.git
+cd Agent_Compute
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Install and run Ollama (Mac/Linux)
+ollama pull llama3.2
+
+# Start the web server
+python3 app.py
+```
+
+Open **http://localhost:5000** and start generating questions!
+
+📖 **[Full Installation Guide](INSTALLATION.md)**
+
+### Or Use One-Line Setup:
+
+```bash
+git clone https://github.com/rashpinderkaur/Agent_Compute.git && cd Agent_Compute && chmod +x setup.sh && ./setup.sh
+```
+
+## ✨ Features
+
+- **🎉 NEW: Concept-by-Concept Generation**: Generate questions one concept at a time for better control
+- **📊 Google Forms/Quiz Support**: Upload exit tickets directly from Google Forms, Microsoft Forms, or other quiz platforms
+- **🤖 Adaptive Question Generation**: Generates questions at three difficulty levels (beginner, intermediate, advanced)
+- **💻 Multi-Language Support**: Supports Python, Java, C++, and JavaScript for programming courses
+- **🎯 Intelligent AI**: Uses local LLM (Ollama) or OpenAI for question generation
+- **📚 Comprehensive Feedback**: Provides detailed explanations and feedback for each question
+- **🔗 Learning Resources**: Suggests curated open-source learning materials
+- **📂 Smart Grouping**: Organizes questions by concepts where students struggled
+- **🔄 Auto-Format Detection**: Automatically detects and converts different exit ticket formats
+- **🌐 Web Interface**: Beautiful, modern UI for easy interaction
+- **🔒 Privacy-Focused**: Run completely offline with Ollama
 
 ## Installation
 
@@ -36,6 +71,18 @@ pip install -r requirements.txt
 
 ## Quick Start
 
+### Option 1: Use Google Forms Export (Easiest!)
+
+1. Export your quiz results from Google Forms as Excel (.xlsx)
+2. Run the tool directly:
+```bash
+python3 main.py --input MyQuizResults.xlsx
+```
+
+The system automatically detects the format and converts it! See [GOOGLE_FORMS_GUIDE.md](GOOGLE_FORMS_GUIDE.md) for details.
+
+### Option 2: Use Normalized Format
+
 Generate sample data to test the tool:
 ```bash
 python3 create_sample_data.py
@@ -46,7 +93,7 @@ Then generate questions:
 python3 main.py --input sample_exit_ticket.xlsx
 ```
 
-For detailed usage instructions, see `USAGE_GUIDE.md`.
+For detailed usage instructions, see [USAGE_GUIDE.md](USAGE_GUIDE.md).
 
 ## Usage
 
@@ -71,6 +118,24 @@ python main.py --input exit_ticket_responses.xlsx --language python
 ```
 
 ## Input Format
+
+### Google Forms/Quiz Format (Recommended) 🎯
+
+Export directly from Google Forms, Microsoft Forms, or similar platforms. The file should have:
+- Student email/ID column
+- Question columns with question text as headers
+- "Points - [Question Text]" columns with 0 (incorrect) or 1 (correct)
+
+**Example from Exit_response.xlsx:**
+```
+| Student_Email | What is a loop? | Points - What is a loop? | What is break? | Points - What is break? |
+| student@x.com | Iteration       | 1                        | Stops loop     | 1                       |
+| student2@x.com| Function        | 0                        | Continues      | 0                       |
+```
+
+See [GOOGLE_FORMS_GUIDE.md](GOOGLE_FORMS_GUIDE.md) for full details.
+
+### Normalized Format (Alternative)
 
 The input Excel file should have the following columns:
 - `Student_ID`: Unique identifier for the student
@@ -136,11 +201,57 @@ Edit `config.yaml` to customize:
 - Learning resource links
 - Retry logic for API calls
 
-## License
+## Additional Tools
 
-MIT License
+### Convert Format Tool
 
-## Contributing
+Convert Google Forms exports to normalized format:
+```bash
+python convert_format.py --input Exit_response.xlsx --output normalized.xlsx
+```
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+### Web Interface
+
+Start the web interface for easy file upload and download:
+```bash
+python web_app.py
+```
+Then open http://localhost:5000 in your browser.
+
+## Documentation
+
+- **[GOOGLE_FORMS_GUIDE.md](GOOGLE_FORMS_GUIDE.md)** - 🆕 Using Google Forms/Quiz exports
+- **[USAGE_GUIDE.md](USAGE_GUIDE.md)** - Detailed usage instructions
+- **[WEB_UI_GUIDE.md](WEB_UI_GUIDE.md)** - Web interface guide
+- **[PLATFORM_UPLOAD_GUIDE.md](PLATFORM_UPLOAD_GUIDE.md)** - Export to learning platforms
+- **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - Codebase organization
+- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Technical details
+
+## 📸 Screenshots
+
+![Upload Interface](docs/screenshot-upload.png)
+![Concept Selection](docs/screenshot-concepts.png)
+![Question Generation](docs/screenshot-generate.png)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Flask](https://flask.palletsprojects.com/)
+- AI powered by [Ollama](https://ollama.ai/) or [OpenAI](https://openai.com/)
+- UI components from [Bootstrap](https://getbootstrap.com/)
+
+## 📧 Contact
+
+For questions or support, please open an issue on GitHub.
+
+## ⭐ Star History
+
+If you find this project helpful, please consider giving it a star!
 

@@ -1,0 +1,142 @@
+{
+  "level": "intermediate",
+  "total_questions": 3,
+  "generated_at": "2025-11-22T15:02:18.711815",
+  "questions": [
+    {
+      "id": "intermediate_python_1",
+      "concept": "Python Loops",
+      "category": "programming",
+      "language": "python",
+      "difficulty": "intermediate",
+      "question": "```json\n{\n  \"question\": \"Write a Python function that uses a for loop to print out the square of each number in a list, but with a subtle bug. The function should take a list of integers as input and return a new list containing the squares.\",\n  \"code\": \"\"\"\ndef square_numbers(numbers):\n    squares = []\n    for num in numbers:\n        squares.append(num ** 2)\n        # Subtle bug: incrementing 'i' instead of 'num'\n        i += 1\n    return squares\n  \"\"\",\n  \"task\": \"Identify and fix the subtle bug in the function, then explain why it's causing issues.\",\n  \"solution\": \"\"\"\ndef square_numbers(numbers):\n    squares = []\n    for num in numbers:\n        squares.append(num ** 2)\n        # Subtle bug: incrementing 'i' instead of 'num'\n        i += 1\n    return squares\n    \"\"\"\n \n  \"explanation\": \"\"\"\nThe issue with the given code is that it tries to use a variable `i` that hasn't been defined anywhere. In Python, you need to define variables before using them.\n \n A better approach would be to use a counter like in this corrected version:\n\ndef square_numbers(numbers):\n    squares = []\n    i = 0\n    for num in numbers:\n        squares.append(num ** 2)\n        i += 1\n    return squares,\n\nIn the correct code, 'i' is initialized as a local variable before the loop starts. This way, it can be incremented inside the loop without causing any issues.\n\"\"\",\n  \"expected_output\": \"[[0], [4], [9]]\" \n}\n```",
+      "type": "execution_trace",
+      "feedback": {
+        "solution_explanation": "",
+        "key_points": [],
+        "debugging_tips": [],
+        "best_practices": [
+          "Follow PEP 8 style guidelines",
+          "Use descriptive variable names",
+          "Add docstrings to functions",
+          "Use list comprehensions where appropriate"
+        ]
+      },
+      "learning_resources": [
+        {
+          "name": "Python Official Documentation",
+          "url": "https://docs.python.org/3/"
+        },
+        {
+          "name": "Real Python Tutorials",
+          "url": "https://realpython.com/"
+        },
+        {
+          "name": "Python Exercises on HackerRank",
+          "url": "https://www.hackerrank.com/domains/python"
+        },
+        {
+          "name": "LeetCode Python Problems",
+          "url": "https://leetcode.com/problemset/all/?difficulty=EASY&page=1&topicSlugs=python"
+        },
+        {
+          "name": "Understanding Loops in Python",
+          "url": "https://www.google.com/search?q=python+loops+tutorial"
+        }
+      ]
+    },
+    {
+      "id": "intermediate_python_2",
+      "concept": "Python Loops",
+      "category": "programming",
+      "language": "python",
+      "difficulty": "intermediate",
+      "question": "```\n{\n  \"question\": \"Why does the following Python loop not produce the expected output? The loop is designed to print all even numbers between 10 and 20, but it seems to be skipping some values. Identify the bug and fix it.\",\n  \"code\": \"\"\"\nfor i in range(11):\n  if i % 2 == 0:\n    print(i)\n\"\"\",\n  \"task\": \"Identify and fix the error in this Python loop\",\n  \"solution\": \"\"\"\nfor i in range(10, 21): # Loop should start at 10 instead of 11\n  if i % 2 == 0:\n    print(i)\n\"\"\",\n  \"explanation\": \"\"\"\nThis loop is supposed to print all even numbers between 10 and 20. However, the current implementation starts the loop from 11 (instead of 10), which causes it to skip some values.\nTo fix this, we need to change the `range` function to start at 10 instead of 11. This way, the loop will include all even numbers between 10 and 20 in its output.\"\n}\n```",
+      "type": "debugging",
+      "code": "",
+      "task": "",
+      "solution": "",
+      "explanation": "",
+      "feedback": {
+        "solution_explanation": "",
+        "key_points": [],
+        "debugging_tips": [
+          "Carefully trace through the code line by line",
+          "Pay attention to python syntax rules",
+          "Look for common errors related to Python Loops",
+          "Use print statements or a debugger to track variable values"
+        ],
+        "best_practices": [
+          "Follow PEP 8 style guidelines",
+          "Use descriptive variable names",
+          "Add docstrings to functions",
+          "Use list comprehensions where appropriate"
+        ]
+      },
+      "learning_resources": [
+        {
+          "name": "Python Official Documentation",
+          "url": "https://docs.python.org/3/"
+        },
+        {
+          "name": "Real Python Tutorials",
+          "url": "https://realpython.com/"
+        },
+        {
+          "name": "Python Exercises on HackerRank",
+          "url": "https://www.hackerrank.com/domains/python"
+        },
+        {
+          "name": "LeetCode Python Problems",
+          "url": "https://leetcode.com/problemset/all/?difficulty=EASY&page=1&topicSlugs=python"
+        },
+        {
+          "name": "Understanding Loops in Python",
+          "url": "https://www.google.com/search?q=python+loops+tutorial"
+        }
+      ]
+    },
+    {
+      "id": "intermediate_python_3",
+      "concept": "Python Loops",
+      "category": "programming",
+      "language": "python",
+      "difficulty": "intermediate",
+      "question": "```\n{\n  \"question\": \"You are given a list of exam scores. Write a Python code to find the highest score and the number of students who scored above 70.\",\n  \"code\": \"\"\"\nfor i in range(len(scores)):\n    if scores[i] > 70:\n        count += 1\nif scores[i] == max(scores):\n    highest_score = scores[i]\nelse:\n    highest_score = max(scores)\nprint(f\"Highest Score: {highest_score}, Number of students with score above 70: {count}\")\n\"\"\",\n  \"task\": \"\"\"\nFill in the blanks to complete the code snippet. The 'scores' list is given at the top of the code.\nOriginal scores list: [85, 90, 78, 92, 88]\n\"\"\",\n  \"solution\": \"\"\"\nfor i in range(len(scores)):\n    if scores[i] > 70:\n        count += 1\nif max(scores) == scores[-1]:\n    highest_score = scores[-1]\nelse:\n    highest_score = max(scores)\nprint(f\"Highest Score: {highest_score}, Number of students with score above 70: {count}\")\n\"\"\"\n}\n```",
+      "type": "execution_trace",
+      "feedback": {
+        "solution_explanation": "",
+        "key_points": [],
+        "debugging_tips": [],
+        "best_practices": [
+          "Follow PEP 8 style guidelines",
+          "Use descriptive variable names",
+          "Add docstrings to functions",
+          "Use list comprehensions where appropriate"
+        ]
+      },
+      "learning_resources": [
+        {
+          "name": "Python Official Documentation",
+          "url": "https://docs.python.org/3/"
+        },
+        {
+          "name": "Real Python Tutorials",
+          "url": "https://realpython.com/"
+        },
+        {
+          "name": "Python Exercises on HackerRank",
+          "url": "https://www.hackerrank.com/domains/python"
+        },
+        {
+          "name": "LeetCode Python Problems",
+          "url": "https://leetcode.com/problemset/all/?difficulty=EASY&page=1&topicSlugs=python"
+        },
+        {
+          "name": "Understanding Loops in Python",
+          "url": "https://www.google.com/search?q=python+loops+tutorial"
+        }
+      ]
+    }
+  ]
+}
