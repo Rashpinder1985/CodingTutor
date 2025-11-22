@@ -13,8 +13,8 @@ This guide will help you set up the Adaptive Question Generator on your local ma
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Agent_Compute.git
-cd Agent_Compute
+git clone https://github.com/Rashpinder1985/CodingTutor.git
+cd CodingTutor
 ```
 
 ### 2. Install Dependencies
@@ -86,8 +86,8 @@ sudo apt update
 sudo apt install python3 python3-pip git
 
 # Clone and install
-git clone https://github.com/YOUR_USERNAME/Agent_Compute.git
-cd Agent_Compute
+git clone https://github.com/Rashpinder1985/CodingTutor.git
+cd CodingTutor
 pip3 install -r requirements.txt
 
 # Install Ollama

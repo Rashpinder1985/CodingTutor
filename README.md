@@ -9,8 +9,8 @@ An intelligent web application that analyzes student exit ticket responses and g
 
 ```bash
 # Clone the repository
-git clone https://github.com/rashpinderkaur/Agent_Compute.git
-cd Agent_Compute
+git clone https://github.com/Rashpinder1985/CodingTutor.git
+cd CodingTutor
 
 # Install dependencies
 pip install -r requirements.txt
@@ -29,7 +29,7 @@ Open **http://localhost:5000** and start generating questions!
 ### Or Use One-Line Setup:
 
 ```bash
-git clone https://github.com/rashpinderkaur/Agent_Compute.git && cd Agent_Compute && chmod +x setup.sh && ./setup.sh
+git clone https://github.com/Rashpinder1985/CodingTutor.git && cd CodingTutor && chmod +x setup.sh && ./setup.sh
 ```
 
 ## ✨ Features

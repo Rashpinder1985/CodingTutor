@@ -2,7 +2,7 @@
 
 ## GitHub Repository Link
 
-**https://github.com/rashpinderkaur/Agent_Compute**
+**https://github.com/Rashpinder1985/CodingTutor**
 
 ## Quick Start for Users
 
@@ -13,7 +13,7 @@ Share this with teachers who want to use the tool:
 ### ⚡ One-Line Installation (Mac/Linux)
 
 ```bash
-git clone https://github.com/rashpinderkaur/Agent_Compute.git && cd Agent_Compute && chmod +x setup.sh && ./setup.sh
+git clone https://github.com/Rashpinder1985/CodingTutor.git && cd CodingTutor && chmod +x setup.sh && ./setup.sh
 ```
 
 Then:
@@ -29,8 +29,8 @@ Open: **http://localhost:5000**
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/rashpinderkaur/Agent_Compute.git
-   cd Agent_Compute
+   git clone https://github.com/Rashpinder1985/CodingTutor.git
+   cd CodingTutor
    ```
 
 2. **Install dependencies:**
@@ -72,7 +72,7 @@ Open: **http://localhost:5000**
 ✅ Privacy-focused (runs locally)
 ✅ Concept-by-concept generation
 
-Check it out: https://github.com/rashpinderkaur/Agent_Compute
+Check it out: https://github.com/Rashpinder1985/CodingTutor
 
 #EdTech #AI #Teachers #OpenSource
 ```
@@ -92,7 +92,7 @@ Key Features:
 
 Perfect for CS educators, tutors, and anyone creating practice materials!
 
-GitHub: https://github.com/rashpinderkaur/Agent_Compute
+GitHub: https://github.com/Rashpinder1985/CodingTutor
 
 #EdTech #Education #AI #TeachingTools
 ```
@@ -113,7 +113,7 @@ What makes it special:
 - Completely free and runs on your computer
 - Great for programming and non-programming courses
 
-You can try it here: https://github.com/rashpinderkaur/Agent_Compute
+You can try it here: https://github.com/Rashpinder1985/CodingTutor
 
 Let me know if you find it useful!
 
@@ -196,6 +196,6 @@ If you find this helpful:
 
 ---
 
-**Repository:** https://github.com/rashpinderkaur/Agent_Compute
+**Repository:** https://github.com/Rashpinder1985/CodingTutor
 **Documentation:** See README.md and guides in the repo
 
