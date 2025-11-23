@@ -2,13 +2,23 @@
 
 # LLM Configuration
 llm:
-  provider: "ollama"  # Options: "ollama" (local), "openai" (cloud)
-  model: "llama3.2"   # For Ollama: "llama3.2" or "gemma3:1b". For OpenAI: "gpt-4" or "gpt-3.5-turbo"
+  provider: "ollama"  # Options: "ollama" (local), "openai" (cloud), "gemini" (Google)
+  model: "llama3.2"   # For Ollama: "llama3.2" or "gemma3:1b". For OpenAI: "gpt-4" or "gpt-3.5-turbo". For Gemini: "gemini-1.5-flash"
   api_key_env: "OPENAI_API_KEY"  # Only needed for OpenAI provider
   temperature: 0.7
   max_tokens: 2000
   retry_attempts: 3
   retry_delay: 2  # seconds
+  
+  # Fallback Configuration (tries in order if primary fails)
+  fallback_enabled: true
+  fallback_providers:
+    - provider: "gemini"
+      model: "gemini-1.5-flash"
+      api_key_env: "GEMINI_API_KEY"
+    - provider: "openai"
+      model: "gpt-3.5-turbo"
+      api_key_env: "OPENAI_API_KEY"
 
 # Question Generation Limits
 question_limits:

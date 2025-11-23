@@ -11,6 +11,14 @@ from typing import Dict, List, Optional
 from openai import OpenAI
 import json
 
+# Try to import Gemini, but don't fail if not installed
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    genai = None
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -101,7 +109,7 @@ class LLMGenerator:
     
     def __init__(self, config: Dict):
         """
-        Initialize the LLM generator.
+        Initialize the LLM generator with fallback support.
         
         Args:
             config: Configuration dictionary with LLM settings
@@ -109,35 +117,93 @@ class LLMGenerator:
         self.config = config
         self.llm_config = config.get('llm', {})
         
-        # Check if using Ollama or OpenAI
-        self.provider = self.llm_config.get('provider', 'openai').lower()
-        
-        if self.provider == 'ollama':
-            # Initialize Ollama client (uses OpenAI-compatible API)
-            self.client = OpenAI(
-                base_url='http://localhost:11434/v1',
-                api_key='ollama'  # Ollama doesn't need a real API key
-            )
-            self.model = self.llm_config.get('model', 'llama3.2')
-            logger.info(f"Initialized LLM generator with Ollama model: {self.model}")
-        else:
-            # Initialize OpenAI client
-            api_key = os.getenv(self.llm_config.get('api_key_env', 'OPENAI_API_KEY'))
-            if not api_key:
-                raise ValueError(f"API key not found. Set {self.llm_config.get('api_key_env', 'OPENAI_API_KEY')} environment variable.")
-            
-            self.client = OpenAI(api_key=api_key)
-            self.model = self.llm_config.get('model', 'gpt-4')
-            logger.info(f"Initialized LLM generator with OpenAI model: {self.model}")
-        
+        # Primary provider settings
+        self.provider = self.llm_config.get('provider', 'ollama').lower()
+        self.model = self.llm_config.get('model', 'llama3.2')
         self.temperature = self.llm_config.get('temperature', 0.7)
         self.max_tokens = self.llm_config.get('max_tokens', 2000)
         self.retry_attempts = self.llm_config.get('retry_attempts', 3)
         self.retry_delay = self.llm_config.get('retry_delay', 2)
+        
+        # Fallback configuration
+        self.fallback_enabled = self.llm_config.get('fallback_enabled', True)
+        self.fallback_providers = self.llm_config.get('fallback_providers', [])
+        
+        # Initialize primary provider
+        self.client = None
+        self.gemini_model = None
+        self._init_provider(self.provider, self.model)
+        
+    def _init_provider(self, provider: str, model: str, api_key_env: str = None):
+        """Initialize a specific provider."""
+        try:
+            if provider == 'ollama':
+                # Initialize Ollama client (uses OpenAI-compatible API)
+                self.client = OpenAI(
+                    base_url='http://localhost:11434/v1',
+                    api_key='ollama'  # Ollama doesn't need a real API key
+                )
+                logger.info(f"Initialized LLM generator with Ollama model: {model}")
+                return True
+                
+            elif provider == 'gemini':
+                if not GEMINI_AVAILABLE:
+                    logger.warning("Google Gemini SDK not installed. Install with: pip install google-generativeai")
+                    return False
+                
+                # Get API key
+                key_env = api_key_env or self.llm_config.get('api_key_env', 'GEMINI_API_KEY')
+                api_key = os.getenv(key_env)
+                if not api_key:
+                    logger.warning(f"Gemini API key not found. Set {key_env} environment variable.")
+                    return False
+                
+                # Initialize Gemini
+                genai.configure(api_key=api_key)
+                self.gemini_model = genai.GenerativeModel(model)
+                logger.info(f"Initialized LLM generator with Gemini model: {model}")
+                return True
+                
+            elif provider == 'openai':
+                # Initialize OpenAI client
+                key_env = api_key_env or self.llm_config.get('api_key_env', 'OPENAI_API_KEY')
+                api_key = os.getenv(key_env)
+                if not api_key:
+                    logger.warning(f"OpenAI API key not found. Set {key_env} environment variable.")
+                    return False
+                
+                self.client = OpenAI(api_key=api_key)
+                logger.info(f"Initialized LLM generator with OpenAI model: {model}")
+                return True
+                
+            else:
+                logger.error(f"Unknown provider: {provider}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Failed to initialize {provider}: {e}")
+            return False
+    
+    def _make_gemini_call(self, messages: List[Dict], temperature: float) -> str:
+        """Make an API call to Gemini."""
+        # Convert OpenAI format to Gemini format
+        prompt = "\n\n".join([f"{m['role']}: {m['content']}" for m in messages])
+        
+        generation_config = genai.GenerationConfig(
+            temperature=temperature,
+            max_output_tokens=self.max_tokens,
+        )
+        
+        response = self.gemini_model.generate_content(
+            prompt,
+            generation_config=generation_config
+        )
+        
+        return response.text.strip()
     
     def _make_api_call(self, messages: List[Dict], temperature: Optional[float] = None) -> str:
         """
-        Make an API call to the LLM with retry logic.
+        Make an API call to the LLM with retry logic and fallback support.
         
         Args:
             messages: List of message dictionaries
@@ -148,22 +214,82 @@ class LLMGenerator:
         """
         temp = temperature if temperature is not None else self.temperature
         
+        # Try primary provider first
         for attempt in range(self.retry_attempts):
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=temp,
-                    max_tokens=self.max_tokens
-                )
-                return response.choices[0].message.content.strip()
-                
+                if self.provider == 'gemini' and self.gemini_model:
+                    return self._make_gemini_call(messages, temp)
+                elif self.client:
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=messages,
+                        temperature=temp,
+                        max_tokens=self.max_tokens
+                    )
+                    return response.choices[0].message.content.strip()
+                else:
+                    raise Exception("No client initialized")
+                    
             except Exception as e:
-                logger.warning(f"API call attempt {attempt + 1} failed: {str(e)}")
+                logger.warning(f"{self.provider.upper()} attempt {attempt + 1} failed: {str(e)}")
                 if attempt < self.retry_attempts - 1:
                     time.sleep(self.retry_delay)
-                else:
-                    raise Exception(f"Failed to generate content after {self.retry_attempts} attempts: {str(e)}")
+        
+        # Primary provider failed, try fallbacks
+        if self.fallback_enabled and self.fallback_providers:
+            logger.warning(f"Primary provider {self.provider} failed, trying fallbacks...")
+            
+            for fallback in self.fallback_providers:
+                try:
+                    fb_provider = fallback.get('provider')
+                    fb_model = fallback.get('model')
+                    fb_api_key_env = fallback.get('api_key_env')
+                    
+                    logger.info(f"Attempting fallback to {fb_provider} ({fb_model})...")
+                    
+                    # Initialize fallback provider
+                    old_provider = self.provider
+                    old_model = self.model
+                    old_client = self.client
+                    old_gemini = self.gemini_model
+                    
+                    self.provider = fb_provider
+                    self.model = fb_model
+                    
+                    if self._init_provider(fb_provider, fb_model, fb_api_key_env):
+                        # Try the fallback
+                        try:
+                            if fb_provider == 'gemini' and self.gemini_model:
+                                result = self._make_gemini_call(messages, temp)
+                            elif self.client:
+                                response = self.client.chat.completions.create(
+                                    model=fb_model,
+                                    messages=messages,
+                                    temperature=temp,
+                                    max_tokens=self.max_tokens
+                                )
+                                result = response.choices[0].message.content.strip()
+                            else:
+                                continue
+                            
+                            logger.info(f"✓ Fallback to {fb_provider} succeeded!")
+                            return result
+                            
+                        except Exception as fb_error:
+                            logger.warning(f"Fallback to {fb_provider} failed: {fb_error}")
+                            # Restore original settings
+                            self.provider = old_provider
+                            self.model = old_model
+                            self.client = old_client
+                            self.gemini_model = old_gemini
+                            continue
+                    
+                except Exception as e:
+                    logger.warning(f"Error trying fallback {fallback.get('provider')}: {e}")
+                    continue
+        
+        # All attempts failed
+        raise Exception(f"Failed to generate content after all retry attempts and fallbacks")
     
     def generate_mcq_question(self, template: Dict, concept: str, language: Optional[str] = None) -> Dict:
         """
