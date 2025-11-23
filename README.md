@@ -35,16 +35,17 @@ git clone https://github.com/Rashpinder1985/CodingTutor.git && cd CodingTutor &&
 ## ✨ Features
 
 - **🎉 NEW: Concept-by-Concept Generation**: Generate questions one concept at a time for better control
+- **🆕 NEW: AI Fallback Support**: Automatic fallback from Ollama → Gemini → OpenAI for reliability
 - **📊 Google Forms/Quiz Support**: Upload exit tickets directly from Google Forms, Microsoft Forms, or other quiz platforms
 - **🤖 Adaptive Question Generation**: Generates questions at three difficulty levels (beginner, intermediate, advanced)
 - **💻 Multi-Language Support**: Supports Python, Java, C++, and JavaScript for programming courses
-- **🎯 Intelligent AI**: Uses local LLM (Ollama) or OpenAI for question generation
+- **🎯 Intelligent AI**: Uses local LLM (Ollama), Google Gemini, or OpenAI for question generation
 - **📚 Comprehensive Feedback**: Provides detailed explanations and feedback for each question
 - **🔗 Learning Resources**: Suggests curated open-source learning materials
 - **📂 Smart Grouping**: Organizes questions by concepts where students struggled
 - **🔄 Auto-Format Detection**: Automatically detects and converts different exit ticket formats
 - **🌐 Web Interface**: Beautiful, modern UI for easy interaction
-- **🔒 Privacy-Focused**: Run completely offline with Ollama
+- **🔒 Privacy-Focused**: Run completely offline with Ollama (Gemini fallback optional)
 
 ## Installation
 
