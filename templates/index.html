@@ -390,6 +390,10 @@
             status.className = 'status-badge status-generating';
 
             try {
+                // Add timeout of 10 minutes for long-running generation
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutes
+                
                 const response = await fetch('/generate-concept', {
                     method: 'POST',
                     headers: {
@@ -398,8 +402,11 @@
                     body: JSON.stringify({
                         session_id: currentSessionId,
                         concept_key: conceptKey
-                    })
+                    }),
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
 
                 const data = await response.json();
 
@@ -424,7 +431,13 @@
                 button.innerHTML = '<i class="bi bi-magic"></i> Retry';
                 status.textContent = 'Failed';
                 status.className = 'status-badge bg-danger text-white';
-                alert('Error: ' + error.message);
+                
+                // Check if it's a timeout
+                if (error.name === 'AbortError') {
+                    alert('Request timed out after 10 minutes. The questions might still be generating in the background. Please check the Downloads folder or try again.');
+                } else {
+                    alert('Error: ' + error.message);
+                }
             }
         }
     </script>
