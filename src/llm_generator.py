@@ -132,7 +132,21 @@ class LLMGenerator:
         # Initialize primary provider
         self.client = None
         self.gemini_model = None
-        self._init_provider(self.provider, self.model)
+        init_success = self._init_provider(self.provider, self.model)
+        
+        if not init_success:
+            error_msg = f"Failed to initialize {self.provider}. "
+            if self.provider == 'gemini':
+                error_msg += "Make sure GEMINI_API_KEY environment variable is set. "
+            elif self.provider == 'openai':
+                error_msg += "Make sure OPENAI_API_KEY environment variable is set. "
+            elif self.provider == 'ollama':
+                error_msg += "Make sure Ollama is running (ollama serve). "
+            
+            if self.fallback_enabled and self.fallback_providers:
+                logger.warning(f"{error_msg}Will try fallback providers when needed.")
+            else:
+                raise RuntimeError(error_msg + "No fallback providers configured.")
         
     def _init_provider(self, provider: str, model: str, api_key_env: str = None):
         """Initialize a specific provider."""

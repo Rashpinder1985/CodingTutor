@@ -234,8 +234,22 @@ def generate_concept():
                 config['llm']['model'] = 'llama3.2'
             elif llm_provider == 'gemini':
                 config['llm']['model'] = 'gemini-1.5-flash'
+                # Verify Gemini API key is set
+                import os
+                gemini_key = os.getenv('GEMINI_API_KEY')
+                if not gemini_key:
+                    print("ERROR: GEMINI_API_KEY environment variable not set!")
+                    return jsonify({'error': 'Gemini API key not found. Please set GEMINI_API_KEY environment variable.'}), 400
+                else:
+                    print(f"✓ Gemini API key found: {gemini_key[:10]}...{gemini_key[-4:]}")
             elif llm_provider == 'openai':
                 config['llm']['model'] = 'gpt-3.5-turbo'
+                # Verify OpenAI API key is set
+                import os
+                openai_key = os.getenv('OPENAI_API_KEY')
+                if not openai_key:
+                    print("ERROR: OPENAI_API_KEY environment variable not set!")
+                    return jsonify({'error': 'OpenAI API key not found. Please set OPENAI_API_KEY environment variable.'}), 400
         else:
             print("Using automatic fallback chain: Ollama → Gemini → OpenAI")
             # Keep fallback enabled for 'auto' mode
