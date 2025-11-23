@@ -33,6 +33,21 @@ ALLOWED_EXTENSIONS = {'xlsx'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Check for API keys on startup (log status)
+print("\n" + "="*70)
+print("🔑 API Key Status Check:")
+gemini_key = os.getenv('GEMINI_API_KEY')
+openai_key = os.getenv('OPENAI_API_KEY')
+if gemini_key:
+    print(f"✓ GEMINI_API_KEY: {gemini_key[:10]}...{gemini_key[-4:]}")
+else:
+    print("⚠️  GEMINI_API_KEY: Not set")
+if openai_key:
+    print(f"✓ OPENAI_API_KEY: {openai_key[:10]}...{openai_key[-4:]}")
+else:
+    print("ℹ️  OPENAI_API_KEY: Not set (optional)")
+print("="*70 + "\n")
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -226,8 +241,9 @@ def generate_concept():
         if llm_provider and llm_provider != 'auto':
             print(f"User selected LLM provider: {llm_provider}")
             config['llm']['provider'] = llm_provider
-            # Disable fallback if specific provider is chosen
-            config['llm']['fallback_enabled'] = False
+            # KEEP fallback enabled for reliability (even with specific provider)
+            config['llm']['fallback_enabled'] = True
+            print("  (Fallback still enabled for reliability)")
             
             # Set appropriate model for each provider
             if llm_provider == 'ollama':
@@ -238,7 +254,8 @@ def generate_concept():
                 gemini_key = os.getenv('GEMINI_API_KEY')
                 if not gemini_key:
                     print("ERROR: GEMINI_API_KEY environment variable not set!")
-                    return jsonify({'error': 'Gemini API key not found. Please set GEMINI_API_KEY environment variable.'}), 400
+                    print("  Will try to use fallback providers...")
+                    # Don't return error, let it try fallback
                 else:
                     print(f"✓ Gemini API key found: {gemini_key[:10]}...{gemini_key[-4:]}")
             elif llm_provider == 'openai':
@@ -247,7 +264,8 @@ def generate_concept():
                 openai_key = os.getenv('OPENAI_API_KEY')
                 if not openai_key:
                     print("ERROR: OPENAI_API_KEY environment variable not set!")
-                    return jsonify({'error': 'OpenAI API key not found. Please set OPENAI_API_KEY environment variable.'}), 400
+                    print("  Will try to use fallback providers...")
+                    # Don't return error, let it try fallback
         else:
             print("Using automatic fallback chain: Ollama → Gemini → OpenAI")
             # Keep fallback enabled for 'auto' mode
