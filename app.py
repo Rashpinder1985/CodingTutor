@@ -21,6 +21,7 @@ from pathlib import Path
 from src.input_processor import InputProcessor
 from src.question_generator import QuestionGenerator
 from src.output_formatter import OutputFormatter
+from src.word_formatter import create_word_document
 
 app = Flask(__name__)
 app.secret_key = 'dev_secret_key_change_in_production'
@@ -230,12 +231,13 @@ def generate_concept():
             'levels': questions_data[concept_key]
         }
         
-        # Save to file
-        output_filename = f"concept_{concept_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        # Create Word document
+        output_filename = f"concept_{concept_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
         
-        with open(output_path, 'w') as f:
-            json.dump(concept_output, f, indent=2)
+        # Generate Word document
+        doc = create_word_document(concept_output)
+        doc.save(output_path)
         
         # Extract question counts safely
         beginner_count = 0
@@ -272,12 +274,14 @@ def generate_concept():
 
 @app.route('/download/<filename>')
 def download_file(filename):
-    """Download generated JSON file."""
+    """Download generated Word document."""
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     if not os.path.exists(filepath):
         return jsonify({'error': 'File not found'}), 404
     
-    return send_file(filepath, as_attachment=True, download_name=filename)
+    # Set the correct MIME type for Word documents
+    mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    return send_file(filepath, as_attachment=True, download_name=filename, mimetype=mimetype)
 
 @app.route('/download-all/<filename>')
 def download_all(filename):
