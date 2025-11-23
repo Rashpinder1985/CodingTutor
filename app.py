@@ -235,7 +235,6 @@ def generate_concept():
             elif llm_provider == 'gemini':
                 config['llm']['model'] = 'gemini-1.5-flash'
                 # Verify Gemini API key is set
-                import os
                 gemini_key = os.getenv('GEMINI_API_KEY')
                 if not gemini_key:
                     print("ERROR: GEMINI_API_KEY environment variable not set!")
@@ -245,7 +244,6 @@ def generate_concept():
             elif llm_provider == 'openai':
                 config['llm']['model'] = 'gpt-3.5-turbo'
                 # Verify OpenAI API key is set
-                import os
                 openai_key = os.getenv('OPENAI_API_KEY')
                 if not openai_key:
                     print("ERROR: OPENAI_API_KEY environment variable not set!")
