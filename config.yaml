@@ -14,7 +14,7 @@ llm:
   fallback_enabled: true
   fallback_providers:
     - provider: "gemini"
-      model: "gemini-1.5-flash"
+      model: "gemini-2.5-flash"
       api_key_env: "GEMINI_API_KEY"
     - provider: "openai"
       model: "gpt-3.5-turbo"

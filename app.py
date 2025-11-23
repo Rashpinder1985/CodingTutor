@@ -233,7 +233,7 @@ def generate_concept():
             if llm_provider == 'ollama':
                 config['llm']['model'] = 'llama3.2'
             elif llm_provider == 'gemini':
-                config['llm']['model'] = 'gemini-1.5-flash'
+                config['llm']['model'] = 'gemini-2.5-flash'
                 # Verify Gemini API key is set
                 gemini_key = os.getenv('GEMINI_API_KEY')
                 if not gemini_key:
