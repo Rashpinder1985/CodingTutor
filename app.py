@@ -182,8 +182,16 @@ def upload_file():
         return jsonify(response)
         
     except Exception as e:
-        if os.path.exists(filepath):
-            os.unlink(filepath)
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"ERROR in upload_file: {error_details}")
+        
+        try:
+            if 'filepath' in locals() and os.path.exists(filepath):
+                os.unlink(filepath)
+        except:
+            pass
+        
         return jsonify({'error': f'Error processing file: {str(e)}'}), 500
 
 @app.route('/generate-concept', methods=['POST'])
