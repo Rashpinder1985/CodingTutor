@@ -98,6 +98,10 @@ class WordFormatter:
     
     def _add_difficulty_section(self, doc: Document, difficulty: str, questions: List[Dict]):
         """Add a section for a specific difficulty level."""
+        # Skip if no questions
+        if not questions or len(questions) == 0:
+            return
+        
         # Section heading
         heading = doc.add_heading(f'{difficulty.title()} Level Questions', 1)
         heading_format = heading.paragraph_format
@@ -106,8 +110,12 @@ class WordFormatter:
         
         # Add each question
         for idx, question in enumerate(questions, 1):
-            self._add_question(doc, idx, question, difficulty)
-            doc.add_paragraph()  # Add spacing between questions
+            try:
+                self._add_question(doc, idx, question, difficulty)
+                doc.add_paragraph()  # Add spacing between questions
+            except Exception as e:
+                logger.error(f"Error adding question {idx} for {difficulty}: {e}")
+                continue
     
     def _add_question(self, doc: Document, number: int, question_data: Dict, difficulty: str):
         """Add a single question to the document."""
@@ -128,11 +136,15 @@ class WordFormatter:
         
         # Add options
         options = question_data.get('options', {})
-        if options:
-            for option_key in sorted(options.keys()):
-                option_para = doc.add_paragraph(f'{option_key}. {options[option_key]}')
-                option_para.paragraph_format.left_indent = Inches(0.5)
-                option_para.style = 'List Bullet'
+        if options and isinstance(options, dict):
+            try:
+                for option_key in sorted(options.keys()):
+                    option_text = options.get(option_key, '')
+                    option_para = doc.add_paragraph(f'{option_key}. {option_text}')
+                    option_para.paragraph_format.left_indent = Inches(0.5)
+                    option_para.style = 'List Bullet'
+            except Exception as e:
+                logger.error(f"Error adding options: {e}")
         
         # Add hints section (collapsed)
         feedback = question_data.get('feedback', {})
@@ -156,45 +168,56 @@ class WordFormatter:
         for difficulty in ['beginner', 'intermediate', 'advanced']:
             if difficulty in levels and 'questions' in levels[difficulty]:
                 questions = levels[difficulty]['questions']
-                if not questions:
+                if not questions or len(questions) == 0:
                     continue
                 
                 # Difficulty subsection
                 doc.add_heading(f'{difficulty.title()} Level', 2)
                 
                 for idx, question in enumerate(questions, 1):
-                    self._add_answer_explanation(doc, idx, question)
+                    try:
+                        self._add_answer_explanation(doc, idx, question)
+                    except Exception as e:
+                        logger.error(f"Error adding answer for question {idx} in {difficulty}: {e}")
+                        continue
     
     def _add_answer_explanation(self, doc: Document, number: int, question_data: Dict):
         """Add answer and explanation for a question."""
-        # Question number and answer
-        ans_para = doc.add_paragraph()
-        ans_run = ans_para.add_run(f'Question {number}: ')
-        ans_run.bold = True
-        
-        correct_answer = question_data.get('correct_answer', 'N/A')
-        answer_run = ans_para.add_run(f'Answer: {correct_answer}')
-        answer_run.font.color.rgb = RGBColor(0, 128, 0)
-        answer_run.bold = True
-        
-        # Explanation
-        explanation = question_data.get('explanation', 
-                                       question_data.get('feedback', {}).get('general_explanation', 'No explanation available'))
-        exp_para = doc.add_paragraph(explanation)
-        exp_para.paragraph_format.left_indent = Inches(0.5)
-        exp_para.runs[0].font.size = Pt(10)
-        
-        # Option feedback
-        feedback = question_data.get('feedback', {})
-        option_feedback = feedback.get('option_feedback', {})
-        if option_feedback:
-            doc.add_paragraph('Detailed feedback:', style='List Bullet')
-            for option, feedback_text in sorted(option_feedback.items()):
-                feedback_para = doc.add_paragraph(f'{option}: {feedback_text}')
-                feedback_para.paragraph_format.left_indent = Inches(0.75)
-                feedback_para.runs[0].font.size = Pt(9)
-        
-        doc.add_paragraph()  # Add spacing
+        try:
+            # Question number and answer
+            ans_para = doc.add_paragraph()
+            ans_run = ans_para.add_run(f'Question {number}: ')
+            ans_run.bold = True
+            
+            correct_answer = question_data.get('correct_answer', 'N/A')
+            answer_run = ans_para.add_run(f'Answer: {correct_answer}')
+            answer_run.font.color.rgb = RGBColor(0, 128, 0)
+            answer_run.bold = True
+            
+            # Explanation
+            explanation = question_data.get('explanation', 
+                                           question_data.get('feedback', {}).get('general_explanation', 'No explanation available'))
+            exp_para = doc.add_paragraph(str(explanation))
+            exp_para.paragraph_format.left_indent = Inches(0.5)
+            if exp_para.runs and len(exp_para.runs) > 0:
+                exp_para.runs[0].font.size = Pt(10)
+            
+            # Option feedback
+            feedback = question_data.get('feedback', {})
+            option_feedback = feedback.get('option_feedback', {})
+            if option_feedback and isinstance(option_feedback, dict):
+                doc.add_paragraph('Detailed feedback:', style='List Bullet')
+                for option, feedback_text in sorted(option_feedback.items()):
+                    feedback_para = doc.add_paragraph(f'{option}: {feedback_text}')
+                    feedback_para.paragraph_format.left_indent = Inches(0.75)
+                    if feedback_para.runs and len(feedback_para.runs) > 0:
+                        feedback_para.runs[0].font.size = Pt(9)
+            
+            doc.add_paragraph()  # Add spacing
+        except Exception as e:
+            logger.error(f"Error in _add_answer_explanation: {e}")
+            # Add a simple error message to the document
+            doc.add_paragraph(f"[Error displaying answer for Question {number}]")
 
 
 def create_word_document(concept_data: Dict) -> Document:
