@@ -132,54 +132,71 @@ class QuestionGenerator:
             List of question dictionaries
         """
         questions = []
+        max_retries = 3  # Retry up to 3 times for incomplete questions
         
         for i in range(count):
-            try:
-                if level == 'beginner':
-                    # MCQ questions
-                    template = ProgrammingTemplates.get_beginner_template(concept, language)
-                    question = self.llm_generator.generate_mcq_question(
-                        template, concept, language
-                    )
-                    feedback = self.feedback_generator.generate_mcq_feedback(
-                        question, concept
-                    )
+            question_generated = False
+            
+            for retry in range(max_retries):
+                try:
+                    if level == 'beginner':
+                        # MCQ questions
+                        template = ProgrammingTemplates.get_beginner_template(concept, language)
+                        question = self.llm_generator.generate_mcq_question(
+                            template, concept, language
+                        )
+                        feedback = self.feedback_generator.generate_mcq_feedback(
+                            question, concept
+                        )
+                        
+                    elif level == 'intermediate':
+                        # Code snippet questions
+                        template = ProgrammingTemplates.get_intermediate_template(concept, language)
+                        question = self.llm_generator.generate_code_snippet_question(
+                            template, concept, language
+                        )
+                        feedback = self.feedback_generator.generate_code_feedback(
+                            question, concept, language
+                        )
+                        
+                    else:  # advanced
+                        # Full programming problems
+                        template = ProgrammingTemplates.get_advanced_template(concept, language)
+                        question = self.llm_generator.generate_programming_problem(
+                            template, concept, language
+                        )
+                        feedback = self.feedback_generator.generate_problem_feedback(
+                            question, concept, language
+                        )
                     
-                elif level == 'intermediate':
-                    # Code snippet questions
-                    template = ProgrammingTemplates.get_intermediate_template(concept, language)
-                    question = self.llm_generator.generate_code_snippet_question(
-                        template, concept, language
-                    )
-                    feedback = self.feedback_generator.generate_code_feedback(
-                        question, concept, language
-                    )
+                    # Validate question has proper content
+                    if not self._validate_question(question):
+                        if retry < max_retries - 1:
+                            logger.warning(f"Question {i+1} incomplete on attempt {retry+1}/{max_retries}, retrying...")
+                            continue  # Retry
+                        else:
+                            logger.error(f"Failed to generate valid {level} question {i+1} after {max_retries} attempts - skipping")
+                            break  # Give up on this question
                     
-                else:  # advanced
-                    # Full programming problems
-                    template = ProgrammingTemplates.get_advanced_template(concept, language)
-                    question = self.llm_generator.generate_programming_problem(
-                        template, concept, language
-                    )
-                    feedback = self.feedback_generator.generate_problem_feedback(
-                        question, concept, language
-                    )
-                
-                # Validate question has proper content
-                if not self._validate_question(question):
-                    logger.warning(f"Skipping invalid {level} question {i+1} - incomplete or missing content")
-                    continue
-                
-                # Add question ID and feedback
-                question['question_id'] = f"{level}_{language}_{i+1}"
-                question['feedback'] = feedback
-                questions.append(question)
-                
-                logger.info(f"Generated {level} programming question {i+1}/{count}")
-                
-            except Exception as e:
-                logger.error(f"Error generating question {i+1} for {level}: {str(e)}")
-                continue
+                    # Success! Add question ID and feedback
+                    question['question_id'] = f"{level}_{language}_{i+1}"
+                    question['feedback'] = feedback
+                    questions.append(question)
+                    question_generated = True
+                    
+                    logger.info(f"Generated {level} programming question {i+1}/{count} (attempt {retry+1})")
+                    break  # Move to next question
+                    
+                except Exception as e:
+                    if retry < max_retries - 1:
+                        logger.warning(f"Error on attempt {retry+1}/{max_retries} for question {i+1}: {str(e)} - retrying...")
+                        continue  # Retry
+                    else:
+                        logger.error(f"Failed to generate question {i+1} after {max_retries} attempts: {str(e)}")
+                        break  # Give up
+        
+        if len(questions) < count:
+            logger.warning(f"Generated {len(questions)}/{count} valid questions for {level} {language}")
         
         return questions
     
@@ -197,54 +214,71 @@ class QuestionGenerator:
             List of question dictionaries
         """
         questions = []
+        max_retries = 3  # Retry up to 3 times for incomplete questions
         
         for i in range(count):
-            try:
-                if level == 'beginner':
-                    # Basic MCQ questions
-                    template = NonProgrammingTemplates.get_beginner_template(concept)
-                    question = self.llm_generator.generate_mcq_question(
-                        template, concept
-                    )
-                    feedback = self.feedback_generator.generate_mcq_feedback(
-                        question, concept
-                    )
+            question_generated = False
+            
+            for retry in range(max_retries):
+                try:
+                    if level == 'beginner':
+                        # Basic MCQ questions
+                        template = NonProgrammingTemplates.get_beginner_template(concept)
+                        question = self.llm_generator.generate_mcq_question(
+                            template, concept
+                        )
+                        feedback = self.feedback_generator.generate_mcq_feedback(
+                            question, concept
+                        )
+                        
+                    elif level == 'intermediate':
+                        # Scenario-based questions
+                        template = NonProgrammingTemplates.get_intermediate_template(concept)
+                        question = self.llm_generator.generate_scenario_question(
+                            template, concept
+                        )
+                        feedback = self.feedback_generator.generate_mcq_feedback(
+                            question, concept
+                        )
+                        
+                    else:  # advanced
+                        # Activity-based questions
+                        template = NonProgrammingTemplates.get_advanced_template(concept)
+                        question = self.llm_generator.generate_activity_question(
+                            template, concept
+                        )
+                        feedback = self.feedback_generator.generate_activity_feedback(
+                            question, concept
+                        )
                     
-                elif level == 'intermediate':
-                    # Scenario-based questions
-                    template = NonProgrammingTemplates.get_intermediate_template(concept)
-                    question = self.llm_generator.generate_scenario_question(
-                        template, concept
-                    )
-                    feedback = self.feedback_generator.generate_mcq_feedback(
-                        question, concept
-                    )
+                    # Validate question has proper content
+                    if not self._validate_question(question):
+                        if retry < max_retries - 1:
+                            logger.warning(f"Non-programming question {i+1} incomplete on attempt {retry+1}/{max_retries}, retrying...")
+                            continue  # Retry
+                        else:
+                            logger.error(f"Failed to generate valid {level} non-programming question {i+1} after {max_retries} attempts - skipping")
+                            break  # Give up on this question
                     
-                else:  # advanced
-                    # Activity-based questions
-                    template = NonProgrammingTemplates.get_advanced_template(concept)
-                    question = self.llm_generator.generate_activity_question(
-                        template, concept
-                    )
-                    feedback = self.feedback_generator.generate_activity_feedback(
-                        question, concept
-                    )
-                
-                # Validate question has proper content
-                if not self._validate_question(question):
-                    logger.warning(f"Skipping invalid {level} non-programming question {i+1} - incomplete or missing content")
-                    continue
-                
-                # Add question ID and feedback
-                question['question_id'] = f"{level}_non_prog_{i+1}"
-                question['feedback'] = feedback
-                questions.append(question)
-                
-                logger.info(f"Generated {level} non-programming question {i+1}/{count}")
-                
-            except Exception as e:
-                logger.error(f"Error generating question {i+1} for {level}: {str(e)}")
-                continue
+                    # Success! Add question ID and feedback
+                    question['question_id'] = f"{level}_non_prog_{i+1}"
+                    question['feedback'] = feedback
+                    questions.append(question)
+                    question_generated = True
+                    
+                    logger.info(f"Generated {level} non-programming question {i+1}/{count} (attempt {retry+1})")
+                    break  # Move to next question
+                    
+                except Exception as e:
+                    if retry < max_retries - 1:
+                        logger.warning(f"Error on attempt {retry+1}/{max_retries} for non-programming question {i+1}: {str(e)} - retrying...")
+                        continue  # Retry
+                    else:
+                        logger.error(f"Failed to generate non-programming question {i+1} after {max_retries} attempts: {str(e)}")
+                        break  # Give up
+        
+        if len(questions) < count:
+            logger.warning(f"Generated {len(questions)}/{count} valid questions for {level}")
         
         return questions
     
