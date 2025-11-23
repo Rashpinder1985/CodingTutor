@@ -201,6 +201,7 @@ def generate_concept():
         data = request.get_json()
         session_id = data.get('session_id')
         concept_key = data.get('concept_key')
+        llm_provider = data.get('llm_provider', 'auto')  # Get user's LLM choice
         
         if not session_id or not concept_key:
             return jsonify({'error': 'Missing session_id or concept_key'}), 400
@@ -220,6 +221,25 @@ def generate_concept():
         
         # Load config
         config = load_config()
+        
+        # Override LLM provider based on user choice
+        if llm_provider and llm_provider != 'auto':
+            print(f"User selected LLM provider: {llm_provider}")
+            config['llm']['provider'] = llm_provider
+            # Disable fallback if specific provider is chosen
+            config['llm']['fallback_enabled'] = False
+            
+            # Set appropriate model for each provider
+            if llm_provider == 'ollama':
+                config['llm']['model'] = 'llama3.2'
+            elif llm_provider == 'gemini':
+                config['llm']['model'] = 'gemini-1.5-flash'
+            elif llm_provider == 'openai':
+                config['llm']['model'] = 'gpt-3.5-turbo'
+        else:
+            print("Using automatic fallback chain: Ollama → Gemini → OpenAI")
+            # Keep fallback enabled for 'auto' mode
+            config['llm']['fallback_enabled'] = True
         
         # Generate questions for ONLY this concept
         single_concept_data = {concept_key: concepts_data[concept_key]}
