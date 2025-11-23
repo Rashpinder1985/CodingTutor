@@ -165,6 +165,11 @@ class QuestionGenerator:
                         question, concept, language
                     )
                 
+                # Validate question has proper content
+                if not self._validate_question(question):
+                    logger.warning(f"Skipping invalid {level} question {i+1} - incomplete or missing content")
+                    continue
+                
                 # Add question ID and feedback
                 question['question_id'] = f"{level}_{language}_{i+1}"
                 question['feedback'] = feedback
@@ -224,6 +229,11 @@ class QuestionGenerator:
                     feedback = self.feedback_generator.generate_activity_feedback(
                         question, concept
                     )
+                
+                # Validate question has proper content
+                if not self._validate_question(question):
+                    logger.warning(f"Skipping invalid {level} non-programming question {i+1} - incomplete or missing content")
+                    continue
                 
                 # Add question ID and feedback
                 question['question_id'] = f"{level}_non_prog_{i+1}"
@@ -311,4 +321,63 @@ class QuestionGenerator:
         
         # Generate questions for filtered concepts
         return self.generate_all_concepts(filtered_concepts)
+    
+    def _validate_question(self, question: Dict) -> bool:
+        """
+        Validate that a question has all required fields and proper content.
+        
+        Args:
+            question: Question dictionary to validate
+            
+        Returns:
+            True if question is valid, False otherwise
+        """
+        # Check required fields exist
+        if not question or not isinstance(question, dict):
+            return False
+        
+        # Check question text exists and is substantial
+        question_text = question.get('question', '').strip()
+        if not question_text or len(question_text) < 10:
+            logger.warning(f"Question text too short or empty: '{question_text}'")
+            return False
+        
+        # Check if question text contains placeholder text
+        invalid_phrases = [
+            'no question text',
+            '[question]',
+            'question text here',
+            'insert question',
+            'question placeholder'
+        ]
+        question_lower = question_text.lower()
+        if any(phrase in question_lower for phrase in invalid_phrases):
+            logger.warning(f"Question contains placeholder text: '{question_text}'")
+            return False
+        
+        # Check options exist and are valid (for MCQ)
+        if question.get('type') == 'mcq':
+            options = question.get('options', {})
+            if not options or len(options) < 2:
+                logger.warning("MCQ question missing options")
+                return False
+            
+            # Check each option has text
+            for key, value in options.items():
+                if not value or len(str(value).strip()) < 2:
+                    logger.warning(f"Option {key} is empty or too short")
+                    return False
+        
+        # Check correct answer exists
+        if not question.get('correct_answer'):
+            logger.warning("Question missing correct answer")
+            return False
+        
+        # Check explanation exists and is substantial
+        explanation = question.get('explanation', '').strip()
+        if not explanation or len(explanation) < 10:
+            logger.warning("Explanation too short or empty")
+            return False
+        
+        return True
 
