@@ -346,7 +346,10 @@ Return ONLY a JSON object with this structure:
         ]
         
         response = self._make_api_call(messages)
-        
+
+        # DEBUG: Log raw LLM response
+        logger.debug(f"=== RAW LLM RESPONSE (MCQ) ===\n{response[:500]}...\n=== END ===")
+
         # Parse JSON response with robust error handling
         question_data = parse_json_response(response, logger)
         
@@ -381,21 +384,31 @@ Return ONLY a JSON object with this structure:
 Template type: {template.get('type', 'code_snippet')}
 Base template: {template.get('template', '')}
 
-Requirements:
-1. Provide a code snippet that tests understanding of {concept}
-2. Make it appropriate for {template['difficulty']} level
-3. If it's debugging, include a subtle but realistic bug
-4. If it's fill-in-the-blank, mark blanks with ___BLANK___
-5. If it's explanation, provide code that demonstrates the concept
-6. Include the expected output or behavior
+CRITICAL REQUIREMENTS:
+1. You MUST provide a complete code snippet (at least 3-5 lines)
+2. The "code" field MUST contain actual {language} code, not empty string
+3. The "solution" field MUST contain the answer (at least 10 characters)
+4. Make it appropriate for {template['difficulty']} level
+5. If debugging, include a realistic bug in the code
+6. If fill-in-blank, mark blanks with ___BLANK___
+7. If explanation, provide code demonstrating {concept}
 
-Return ONLY a JSON object with this structure:
+Return ONLY valid JSON (no markdown, no extra text):
 {{
-    "question": "the question prompt",
-    "code": "the code snippet (properly formatted)",
-    "task": "what the student needs to do",
-    "solution": "the correct solution or answer",
-    "explanation": "detailed explanation of the solution"
+    "question": "clear question prompt (required)",
+    "code": "complete code snippet with at least 3 lines (required, not empty)",
+    "task": "what student must do (required)",
+    "solution": "correct answer or fix (required, detailed)",
+    "explanation": "detailed explanation (required, at least 20 words)"
+}}
+
+Example for debugging:
+{{
+    "question": "Find and fix the bug in this code",
+    "code": "for i in range(5)\\n    print(i)",
+    "task": "Identify the syntax error and provide the correction",
+    "solution": "Missing colon after range(5). Correct: for i in range(5):",
+    "explanation": "Python for loops require a colon at the end of the statement"
 }}"""
 
         messages = [
@@ -404,9 +417,12 @@ Return ONLY a JSON object with this structure:
         ]
         
         response = self._make_api_call(messages)
-        
+
+        # DEBUG: Log raw LLM response
+        logger.debug(f"=== RAW LLM RESPONSE (CODE) ===\n{response[:500]}...\n=== END ===")
+
         question_data = parse_json_response(response, logger)
-        
+
         if question_data:
             question_data['type'] = template.get('type', 'code_snippet')
             question_data['difficulty'] = template['difficulty']
@@ -434,26 +450,28 @@ Return ONLY a JSON object with this structure:
 
 Template type: {template.get('type', 'implementation')}
 
-Requirements:
-1. Create a problem that tests deep understanding of {concept}
-2. Make it challenging but solvable for {template['difficulty']} level
-3. Provide clear problem description and constraints
-4. Include function signature or expected format
-5. Provide at least 3 test cases (input and expected output)
-6. Include edge cases in test cases
+CRITICAL REQUIREMENTS - ALL FIELDS REQUIRED:
+1. "title": Short problem title (required)
+2. "description": Detailed problem description with at least 30 words (required)
+3. "function_signature": Complete function signature in {language} (required)
+4. "constraints": Array with at least 2 constraints (required)
+5. "test_cases": Array with at least 3 test cases (required)
+6. "hints": Array with at least 2 hints (required)
+7. "solution_approach": Detailed solution explanation with at least 30 words (required)
 
-Return ONLY a JSON object with this structure:
+Return ONLY valid JSON (no markdown, no extra text):
 {{
-    "title": "problem title",
-    "description": "detailed problem description",
-    "function_signature": "expected function signature",
-    "constraints": ["constraint 1", "constraint 2"],
+    "title": "problem title here",
+    "description": "detailed description of what to implement, at least 30 words explaining the problem clearly",
+    "function_signature": "def function_name(parameters) -> return_type:",
+    "constraints": ["constraint 1", "constraint 2", "constraint 3"],
     "test_cases": [
-        {{"input": "test input", "expected_output": "expected result", "explanation": "why"}},
-        {{"input": "test input 2", "expected_output": "expected result 2", "explanation": "why"}}
+        {{"input": "test input 1", "expected_output": "expected result 1", "explanation": "why this output"}},
+        {{"input": "test input 2", "expected_output": "expected result 2", "explanation": "why this output"}},
+        {{"input": "test input 3", "expected_output": "expected result 3", "explanation": "edge case"}}
     ],
-    "hints": ["hint 1", "hint 2"],
-    "solution_approach": "high-level approach to solve"
+    "hints": ["hint 1 about approach", "hint 2 about edge cases"],
+    "solution_approach": "detailed step-by-step approach to solve this problem, at least 30 words"
 }}"""
 
         messages = [
@@ -462,9 +480,12 @@ Return ONLY a JSON object with this structure:
         ]
         
         response = self._make_api_call(messages, temperature=0.8)
-        
+
+        # DEBUG: Log raw LLM response
+        logger.info(f"=== RAW LLM RESPONSE (ADVANCED) ===\n{response}\n=== END ===")
+
         question_data = parse_json_response(response, logger)
-        
+
         if question_data:
             question_data['type'] = template.get('type', 'implementation')
             question_data['difficulty'] = template['difficulty']

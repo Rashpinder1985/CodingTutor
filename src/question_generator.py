@@ -173,9 +173,11 @@ class QuestionGenerator:
                     if not self._validate_question(question):
                         if retry < max_retries - 1:
                             logger.warning(f"Question {i+1} incomplete on attempt {retry+1}/{max_retries}, retrying...")
+                            logger.debug(f"Question type: {question.get('type')}, Keys: {list(question.keys())}")
                             continue  # Retry
                         else:
                             logger.error(f"Failed to generate valid {level} question {i+1} after {max_retries} attempts - skipping")
+                            logger.error(f"Last attempt had type: {question.get('type')}, Keys: {list(question.keys())}")
                             break  # Give up on this question
                     
                     # Success! Add question ID and feedback
@@ -359,23 +361,26 @@ class QuestionGenerator:
     def _validate_question(self, question: Dict) -> bool:
         """
         Validate that a question has all required fields and proper content.
-        
+
         Args:
             question: Question dictionary to validate
-            
+
         Returns:
             True if question is valid, False otherwise
         """
         # Check required fields exist
         if not question or not isinstance(question, dict):
             return False
-        
-        # Check question text exists and is substantial
-        question_text = question.get('question', '').strip()
+
+        question_type = question.get('type', '')
+
+        # Check question text exists and is substantial (or title for some types)
+        question_text = question.get('question', '') or question.get('title', '') or question.get('description', '')
+        question_text = question_text.strip()
         if not question_text or len(question_text) < 10:
             logger.warning(f"Question text too short or empty: '{question_text}'")
             return False
-        
+
         # Check if question text contains placeholder text
         invalid_phrases = [
             'no question text',
@@ -388,30 +393,68 @@ class QuestionGenerator:
         if any(phrase in question_lower for phrase in invalid_phrases):
             logger.warning(f"Question contains placeholder text: '{question_text}'")
             return False
-        
-        # Check options exist and are valid (for MCQ)
-        if question.get('type') == 'mcq':
+
+        # Validate based on question type
+        if question_type == 'mcq' or question_type == 'scenario_mcq':
+            # MCQ questions need options and correct_answer
             options = question.get('options', {})
             if not options or len(options) < 2:
                 logger.warning("MCQ question missing options")
                 return False
-            
+
             # Check each option has text
             for key, value in options.items():
                 if not value or len(str(value).strip()) < 2:
                     logger.warning(f"Option {key} is empty or too short")
                     return False
-        
-        # Check correct answer exists
-        if not question.get('correct_answer'):
-            logger.warning("Question missing correct answer")
-            return False
-        
-        # Check explanation exists and is substantial
-        explanation = question.get('explanation', '').strip()
+
+            # Check correct answer exists
+            if not question.get('correct_answer'):
+                logger.warning("MCQ question missing correct_answer")
+                return False
+
+        elif question_type in ['code_completion', 'debugging', 'code_explanation', 'code_modification', 'execution_trace']:
+            # Intermediate code snippet questions need code and solution
+            code_val = str(question.get('code', '')).strip()
+            if not code_val or len(code_val) < 10:
+                logger.warning(f"{question_type} question has empty/invalid code field")
+                return False
+
+            solution_val = str(question.get('solution', '')).strip()
+            if not solution_val or len(solution_val) < 5:
+                logger.warning(f"{question_type} question has empty/invalid solution")
+                return False
+
+        elif question_type in ['implementation', 'problem_solving', 'optimization', 'algorithm_implementation']:
+            # Advanced: Accept any of these fields (flexible)
+            has_any = (question.get('test_cases') or
+                      question.get('solution_approach') or
+                      question.get('hints') or
+                      question.get('function_signature') or
+                      question.get('constraints'))
+
+            if not has_any:
+                logger.warning(f"{question_type} missing required fields")
+                return False
+
+        elif question_type == 'activity':
+            # Activity questions need requirements and evaluation_criteria
+            if not question.get('requirements') and not question.get('deliverables'):
+                logger.warning("Activity question missing requirements or deliverables")
+                return False
+        else:
+            # Generic validation - must have either correct_answer or solution
+            if not question.get('correct_answer') and not question.get('solution'):
+                logger.warning(f"Question missing correct_answer or solution (type: {question_type})")
+                return False
+
+        # Check explanation exists and is substantial (for most types)
+        # Some question types may use 'guidance' or 'solution_approach' instead
+        explanation = question.get('explanation', '') or question.get('guidance', '') or question.get('solution_approach', '')
+        explanation = str(explanation).strip()
         if not explanation or len(explanation) < 10:
-            logger.warning("Explanation too short or empty")
+            logger.warning("Explanation/guidance too short or empty")
             return False
-        
+
         return True
 

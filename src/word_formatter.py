@@ -124,16 +124,37 @@ class WordFormatter:
         q_run = q_para.add_run(f'Question {number}: ')
         q_run.bold = True
         q_run.font.size = Pt(12)
-        
-        q_text = q_para.add_run(question_data.get('question', 'No question text'))
+
+        # Get question text (or title for advanced)
+        q_text_content = question_data.get('question') or question_data.get('title') or 'No question text'
+        q_text = q_para.add_run(q_text_content)
         q_text.font.size = Pt(11)
-        
+
+        # Add description (for advanced questions - separate from title)
+        if question_data.get('description') and question_data.get('title'):
+            desc_para = doc.add_paragraph(question_data['description'])
+            desc_para.paragraph_format.left_indent = Inches(0.25)
+
+        # Add function signature (advanced)
+        if question_data.get('function_signature'):
+            sig_para = doc.add_paragraph(question_data['function_signature'])
+            sig_para.style = 'Intense Quote'
+            sig_para.paragraph_format.left_indent = Inches(0.5)
+
+        # Add constraints (advanced)
+        if question_data.get('constraints'):
+            const_para = doc.add_paragraph()
+            const_para.add_run('Constraints: ').bold = True
+            for constraint in question_data['constraints']:
+                c_para = doc.add_paragraph(f'• {constraint}')
+                c_para.paragraph_format.left_indent = Inches(0.5)
+
         # Add code if present
         if 'code' in question_data and question_data['code']:
             code_para = doc.add_paragraph(question_data['code'])
             code_para.style = 'Intense Quote'
             code_para.paragraph_format.left_indent = Inches(0.5)
-        
+
         # Add options
         options = question_data.get('options', {})
         if options and isinstance(options, dict):
@@ -145,16 +166,19 @@ class WordFormatter:
                     option_para.style = 'List Bullet'
             except Exception as e:
                 logger.error(f"Error adding options: {e}")
-        
-        # Add hints section (collapsed)
-        feedback = question_data.get('feedback', {})
-        hints = feedback.get('hints', [])
+
+        # Add hints (from question_data directly for advanced)
+        hints = question_data.get('hints', [])
+        if not hints:
+            feedback = question_data.get('feedback', {})
+            hints = feedback.get('hints', [])
+
         if hints:
             hint_para = doc.add_paragraph()
             hint_run = hint_para.add_run('💡 Hints: ')
             hint_run.italic = True
             hint_run.font.size = Pt(10)
-            
+
             for hint in hints:
                 hint_p = doc.add_paragraph(f'• {hint}')
                 hint_p.paragraph_format.left_indent = Inches(0.75)
@@ -188,20 +212,44 @@ class WordFormatter:
             ans_para = doc.add_paragraph()
             ans_run = ans_para.add_run(f'Question {number}: ')
             ans_run.bold = True
-            
-            correct_answer = question_data.get('correct_answer', 'N/A')
-            answer_run = ans_para.add_run(f'Answer: {correct_answer}')
+
+            # Get answer (correct_answer or solution_approach for advanced)
+            answer = (question_data.get('correct_answer') or
+                     question_data.get('solution') or
+                     'See solution approach below')
+            answer_run = ans_para.add_run(f'Answer: {answer}')
             answer_run.font.color.rgb = RGBColor(0, 128, 0)
             answer_run.bold = True
-            
-            # Explanation
-            explanation = question_data.get('explanation', 
-                                           question_data.get('feedback', {}).get('general_explanation', 'No explanation available'))
+
+            # Explanation/Solution approach
+            explanation = (question_data.get('explanation') or
+                          question_data.get('solution_approach') or
+                          question_data.get('feedback', {}).get('general_explanation', 'No explanation available'))
             exp_para = doc.add_paragraph(str(explanation))
             exp_para.paragraph_format.left_indent = Inches(0.5)
             if exp_para.runs and len(exp_para.runs) > 0:
                 exp_para.runs[0].font.size = Pt(10)
-            
+
+            # Add test cases (for advanced questions)
+            test_cases = question_data.get('test_cases', [])
+            if test_cases and isinstance(test_cases, list):
+                tc_heading = doc.add_paragraph()
+                tc_heading.add_run('Test Cases:').bold = True
+                tc_heading.paragraph_format.left_indent = Inches(0.5)
+
+                for idx, tc in enumerate(test_cases, 1):
+                    tc_para = doc.add_paragraph()
+                    tc_para.add_run(f'Test Case {idx}: ').bold = True
+                    tc_input = tc.get('input', '')
+                    tc_output = tc.get('expected_output', '')
+                    tc_explain = tc.get('explanation', '')
+                    tc_para.add_run(f"Input: {tc_input} → Output: {tc_output}")
+                    if tc_explain:
+                        tc_para.add_run(f" ({tc_explain})")
+                    tc_para.paragraph_format.left_indent = Inches(0.75)
+                    if tc_para.runs:
+                        tc_para.runs[0].font.size = Pt(9)
+
             # Option feedback
             feedback = question_data.get('feedback', {})
             option_feedback = feedback.get('option_feedback', {})
