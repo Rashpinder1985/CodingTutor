@@ -17,6 +17,22 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+# Load environment variables from .env.local if it exists
+env_local_path = Path(__file__).parent / '.env.local'
+if env_local_path.exists():
+    with open(env_local_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                # Parse export VAR="value" format
+                if line.startswith('export '):
+                    line = line[7:]  # Remove 'export '
+                key, value = line.split('=', 1)
+                # Remove quotes if present
+                value = value.strip().strip('"').strip("'")
+                os.environ[key] = value
+                print(f"Loaded {key} from .env.local")
+
 # Import our modules
 from src.input_processor import InputProcessor
 from src.question_generator import QuestionGenerator
