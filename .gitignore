@@ -45,3 +45,4 @@ generated_questions.json
 # Logs
 *.log
 
+.env.local

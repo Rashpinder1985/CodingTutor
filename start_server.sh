@@ -4,17 +4,23 @@
 # Set working directory
 cd /Users/rashpinderkaur/Desktop/Agent_Compute
 
-# Set environment variables
-export GEMINI_API_KEY="AIzaSyDsw7PUW8xj5Qgyv4CCnfMMrXowCtkMEpk"
+# Load API keys from local config file (not committed to git)
+if [ -f ".env.local" ]; then
+    echo "Loading API keys from .env.local..."
+    source .env.local
+fi
 
-# Optional: Set OpenAI API key if you have one
-# export OPENAI_API_KEY="your-openai-api-key-here"
-
-# Check if Gemini API key is set
+# Check if API keys are set
 if [ -z "$GEMINI_API_KEY" ]; then
     echo "⚠️  Warning: GEMINI_API_KEY not set"
 else
     echo "✓ GEMINI_API_KEY is set"
+fi
+
+if [ -z "$OPENAI_API_KEY" ]; then
+    echo "⚠️  Warning: OPENAI_API_KEY not set"
+else
+    echo "✓ OPENAI_API_KEY is set"
 fi
 
 # Kill any existing server on port 5000

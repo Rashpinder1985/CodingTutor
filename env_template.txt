@@ -1,0 +1,23 @@
+# Local API Keys Configuration Template
+# 
+# SETUP INSTRUCTIONS:
+# 1. Copy this content to a file named: .env.local
+# 2. Replace "your-xxx-key-here" with your actual API keys
+# 3. .env.local is gitignored and will NOT be committed to GitHub
+# 4. Run: ./start_server.sh (it will automatically load .env.local)
+
+# Gemini API Key (Free tier: 60 req/min, 1500/day)
+# Get yours at: https://makersuite.google.com/app/apikey
+export GEMINI_API_KEY="your-gemini-api-key-here"
+
+# OpenAI API Key (Paid service)
+# Get yours at: https://platform.openai.com/api-keys  
+export OPENAI_API_KEY="your-openai-api-key-here"
+
+# ===================================================================
+# SECURITY NOTE:
+# - NEVER commit API keys to GitHub
+# - Use .env.local for local development
+# - .env.local is automatically excluded by .gitignore
+# ===================================================================
+
