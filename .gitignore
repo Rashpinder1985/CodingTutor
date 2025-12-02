@@ -41,6 +41,8 @@ Thumbs.db
 generated_questions.json
 *.xlsx
 !sample_exit_ticket.xlsx
+!sample_activity_exit_ticket.xlsx
+!Exit_response.xlsx
 
 # Logs
 *.log

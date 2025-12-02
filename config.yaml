@@ -109,3 +109,61 @@ output:
   indent: 2
   include_metadata: true
 
+# Activity Analysis Configuration
+activity_analysis:
+  # Response Selection
+  top_responses_per_question: 10  # Fixed: Select top 10 best responses per question
+  
+  # Keyword Extraction Configuration
+  keyword_extraction:
+    max_keywords: 50  # Top N keywords to extract from activity
+    use_bigrams: true  # Include 2-word phrases (e.g., "newton laws", "rocket propulsion")
+    min_keyword_score: 0.01  # Minimum TF-IDF score to include keyword
+  
+  # Thematic Clustering Configuration
+  thematic_clustering:
+    n_themes: 5  # Number of themes to discover via clustering
+    ensure_diversity: true  # Spread top selections across different themes
+    min_cluster_representation: 1  # At least 1 response per major theme in top 10
+  
+  # Scoring Weights (must sum to ≤ 1.0)
+  scoring_weights:
+    keyword_match: 0.4  # Weight for activity keyword overlap (40%)
+    llm_quality: 0.4    # Weight for LLM-assessed quality (40%)
+    theme_diversity: 0.2  # Weight/bonus for representing unique themes (20%)
+  
+  # LLM Quality Assessment Prompts
+  quality_prompts:
+    q1_quality: |
+      Rate this learning summary (0-100) based on:
+      1. Completeness: Does it cover 3 distinct learnings?
+      2. Depth: Are the learnings substantive or superficial?
+      3. Relevance: Do they relate to the activity objectives?
+      
+      Activity: {activity_description}
+      Student Response: {response}
+      
+      Output JSON: {{"score": 85, "reasoning": "Clear, detailed summary covering 3 distinct concepts with good depth"}}
+    
+    q2_quality: |
+      Rate this student question (0-100) based on:
+      1. Clarity: Is it well-formed and understandable?
+      2. Relevance: Does it directly relate to the instructional material?
+      3. Depth: Does it show critical thinking beyond basic recall?
+      
+      Activity: {activity_description}
+      Student Question: {response}
+      
+      Output JSON: {{"score": 90, "reasoning": "Thoughtful question showing deep understanding and curiosity"}}
+    
+    q3_quality: |
+      Rate this response (0-100) based on:
+      1. Specificity: Is the interest clearly and specifically defined?
+      2. Enthusiasm: Does it show genuine curiosity and excitement?
+      3. Exploration Intent: Is there a clear direction for further learning?
+      
+      Activity: {activity_description}
+      Student Response: {response}
+      
+      Output JSON: {{"score": 75, "reasoning": "Shows specific interest with clear exploration direction"}}
+

@@ -14,8 +14,13 @@ import json
 import zipfile
 import io
 import uuid
+import logging
 from datetime import datetime
 from pathlib import Path
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables from .env.local if it exists
 env_local_path = Path(__file__).parent / '.env.local'
@@ -45,7 +50,7 @@ CORS(app)
 
 # Configuration
 UPLOAD_FOLDER = tempfile.gettempdir()
-ALLOWED_EXTENSIONS = {'xlsx'}
+ALLOWED_EXTENSIONS = {'xlsx', 'txt', 'docx'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
@@ -380,6 +385,107 @@ def download_all(filename):
         download_name=zip_filename,
         mimetype='application/zip'
     )
+
+@app.route('/analyze-activity', methods=['POST'])
+def analyze_activity():
+    """Analyze activity-based exit ticket with two-file upload."""
+    try:
+        # Check for both required files
+        if 'exit_ticket' not in request.files or 'activity_template' not in request.files:
+            return jsonify({'error': 'Both exit ticket and activity template files are required'}), 400
+        
+        exit_file = request.files['exit_ticket']
+        activity_file = request.files['activity_template']
+        
+        if not exit_file.filename or not activity_file.filename:
+            return jsonify({'error': 'Both files must have valid filenames'}), 400
+        
+        # Get LLM provider selection
+        llm_provider = request.form.get('llm_provider', 'ollama')
+        
+        # Save uploaded files
+        exit_filename = secure_filename(exit_file.filename)
+        activity_filename = secure_filename(activity_file.filename)
+        
+        exit_path = os.path.join(app.config['UPLOAD_FOLDER'], exit_filename)
+        activity_path = os.path.join(app.config['UPLOAD_FOLDER'], activity_filename)
+        
+        exit_file.save(exit_path)
+        activity_file.save(activity_path)
+        
+        logger.info(f"Saved exit ticket: {exit_path}")
+        logger.info(f"Saved activity template: {activity_path}")
+        
+        # Process files
+        from src.activity_input_processor import ActivityInputProcessor
+        from src.activity_analyzer import ActivityAnalyzer
+        from src.activity_word_formatter import create_activity_report
+        from src.llm_generator import LLMGenerator
+        
+        processor = ActivityInputProcessor()
+        
+        # Load and validate data
+        students_data = processor.load_exit_ticket_excel(exit_path)
+        activity_template = processor.load_activity_template(activity_path)
+        
+        # Validate responses
+        students_data, warnings = processor.validate_responses(students_data)
+        
+        if not students_data:
+            return jsonify({'error': 'No valid student responses found in exit ticket'}), 400
+        
+        logger.info(f"Loaded {len(students_data)} student responses")
+        if warnings:
+            logger.warning(f"Validation warnings: {warnings[:5]}")  # Log first 5 warnings
+        
+        # Configure LLM
+        config = load_config()
+        config['llm']['provider'] = llm_provider
+        config['llm']['fallback_enabled'] = True  # Always enable fallback
+        
+        # Initialize LLM and analyzer
+        llm_gen = LLMGenerator(config['llm'])
+        analyzer = ActivityAnalyzer(config, llm_gen)
+        
+        # Generate analysis report
+        logger.info("Starting activity analysis...")
+        results = analyzer.generate_analysis_report(students_data, activity_template)
+        
+        # Create Word document
+        doc = create_activity_report(results)
+        output_filename = f"activity_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        doc.save(output_path)
+        
+        logger.info(f"Activity analysis complete: {output_filename}")
+        
+        # Return results
+        return jsonify({
+            'success': True,
+            'output_file': output_filename,
+            'summary': {
+                'total_students': results['metadata']['total_students'],
+                'top_per_question': results['metadata']['top_responses_per_question'],
+                'q1_analyzed': results['summary']['q1_responses_analyzed'],
+                'q1_selected': results['summary']['q1_top_selected'],
+                'q2_analyzed': results['summary']['q2_responses_analyzed'],
+                'q2_selected': results['summary']['q2_top_selected'],
+                'q3_analyzed': results['summary']['q3_responses_analyzed'],
+                'q3_selected': results['summary']['q3_top_selected'],
+                'scoring_method': results['metadata']['scoring_method']
+            },
+            'warnings': warnings[:10]  # Include first 10 warnings
+        })
+    
+    except ValueError as ve:
+        logger.error(f"Validation error: {str(ve)}")
+        return jsonify({'error': str(ve)}), 400
+    
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"ERROR in analyze_activity: {error_details}")
+        return jsonify({'error': f'Error analyzing activity: {str(e)}'}), 500
 
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist

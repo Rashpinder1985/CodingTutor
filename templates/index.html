@@ -157,49 +157,117 @@
                 <hr>
                 
                 <form id="uploadForm" enctype="multipart/form-data">
-                    <div class="upload-zone" id="uploadZone">
-                        <i class="bi bi-file-earmark-excel" style="font-size: 3rem; color: #667eea;"></i>
-                        <p class="mt-2">Drag & drop your Excel file here or click to browse</p>
-                        <input type="file" id="fileInput" name="file" accept=".xlsx" class="d-none" required>
-                        <p class="text-muted small mt-2">Maximum file size: 16MB</p>
+                    <!-- Analysis Mode Selector -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <label class="form-label"><i class="bi bi-gear"></i> Analysis Mode</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="analysisMode" id="modeQuestions" value="questions" checked>
+                                <label class="btn btn-outline-primary" for="modeQuestions">
+                                    <i class="bi bi-question-circle"></i> Generate Practice Questions
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="analysisMode" id="modeActivity" value="activity">
+                                <label class="btn btn-outline-primary" for="modeActivity">
+                                    <i class="bi bi-clipboard-check"></i> Activity Analysis (Qualitative)
+                                </label>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <strong>Questions Mode:</strong> Generate MCQs & coding problems for incorrect answers | 
+                                <strong>Activity Mode:</strong> Analyze open-ended responses from activity-based learning
+                            </small>
+                        </div>
                     </div>
 
-                    <div id="fileInfo" class="alert alert-info mt-3 d-none">
-                        <strong><i class="bi bi-check-circle"></i> File selected:</strong> <span id="fileName"></span>
+                    <!-- Question Generation Mode Inputs (Default) -->
+                    <div id="questionModeInputs">
+                        <div class="upload-zone" id="uploadZone">
+                            <i class="bi bi-file-earmark-excel" style="font-size: 3rem; color: #667eea;"></i>
+                            <p class="mt-2">Drag & drop your Excel file here or click to browse</p>
+                            <input type="file" id="fileInput" name="file" accept=".xlsx" class="d-none">
+                            <p class="text-muted small mt-2">Maximum file size: 16MB</p>
+                        </div>
+
+                        <div id="fileInfo" class="alert alert-info mt-3 d-none">
+                            <strong><i class="bi bi-check-circle"></i> File selected:</strong> <span id="fileName"></span>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-md-4">
+                                <label for="conceptFilter" class="form-label">Filter by Concept (Optional)</label>
+                                <input type="text" class="form-control" id="conceptFilter" name="concept_filter" placeholder="e.g., Python Loops">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="languageFilter" class="form-label">Filter by Language (Optional)</label>
+                                <select class="form-select" id="languageFilter" name="language_filter">
+                                    <option value="all">All Languages</option>
+                                    <option value="python">Python</option>
+                                    <option value="java">Java</option>
+                                    <option value="cpp">C++</option>
+                                    <option value="javascript">JavaScript</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="llmProvider" class="form-label">
+                                    <i class="bi bi-cpu"></i> AI Provider
+                                    <span class="badge bg-info ms-1" title="Choose which AI to use for generation">?</span>
+                                </label>
+                                <select class="form-select" id="llmProvider" name="llm_provider">
+                                    <option value="ollama" selected>Ollama (Local, Free) 🏠</option>
+                                    <option value="gemini">Gemini (Cloud, Free) ⚡</option>
+                                    <option value="openai">OpenAI (Cloud, Paid) 🚀</option>
+                                    <option value="auto">Auto (Fallback Chain) 🔄</option>
+                                </select>
+                                <small class="text-muted">Auto tries Ollama → Gemini → OpenAI</small>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="row mt-4">
-                        <div class="col-md-4">
-                            <label for="conceptFilter" class="form-label">Filter by Concept (Optional)</label>
-                            <input type="text" class="form-control" id="conceptFilter" name="concept_filter" placeholder="e.g., Python Loops">
+                    <!-- Activity Analysis Mode Inputs (Hidden by default) -->
+                    <div id="activityModeInputs" class="d-none">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="exitTicketFile" class="form-label">
+                                    <i class="bi bi-file-earmark-excel"></i> Exit Ticket (Excel)
+                                    <span class="badge bg-danger ms-1">Required</span>
+                                </label>
+                                <input type="file" class="form-control" id="exitTicketFile" name="exit_ticket" accept=".xlsx">
+                                <small class="text-muted">Columns: Student_ID, Q1_Response, Q2_Response, Q3_Response</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="activityTemplateFile" class="form-label">
+                                    <i class="bi bi-file-text"></i> Activity Template (Text/Word)
+                                    <span class="badge bg-danger ms-1">Required</span>
+                                </label>
+                                <input type="file" class="form-control" id="activityTemplateFile" name="activity_template" accept=".txt,.docx">
+                                <small class="text-muted">Activity description/instructions (.txt or .docx)</small>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label for="languageFilter" class="form-label">Filter by Language (Optional)</label>
-                            <select class="form-select" id="languageFilter" name="language_filter">
-                                <option value="all">All Languages</option>
-                                <option value="python">Python</option>
-                                <option value="java">Java</option>
-                                <option value="cpp">C++</option>
-                                <option value="javascript">JavaScript</option>
-                            </select>
+
+                        <div id="activityFileInfo" class="alert alert-info mt-3 d-none">
+                            <strong><i class="bi bi-check-circle"></i> Files selected:</strong>
+                            <div><small>Exit Ticket: <span id="exitTicketName">-</span></small></div>
+                            <div><small>Activity Template: <span id="activityTemplateName">-</span></small></div>
                         </div>
-                        <div class="col-md-4">
-                            <label for="llmProvider" class="form-label">
-                                <i class="bi bi-cpu"></i> AI Provider
-                                <span class="badge bg-info ms-1" title="Choose which AI to use for generation">?</span>
-                            </label>
-                            <select class="form-select" id="llmProvider" name="llm_provider">
-                                <option value="ollama" selected>Ollama (Local, Free) 🏠</option>
-                                <option value="gemini">Gemini (Cloud, Free) ⚡</option>
-                                <option value="openai">OpenAI (Cloud, Paid) 🚀</option>
-                                <option value="auto">Auto (Fallback Chain) 🔄</option>
-                            </select>
-                            <small class="text-muted">Auto tries Ollama → Gemini → OpenAI</small>
+
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <label for="llmProviderActivity" class="form-label">
+                                    <i class="bi bi-cpu"></i> AI Provider
+                                </label>
+                                <select class="form-select" id="llmProviderActivity" name="llm_provider">
+                                    <option value="ollama" selected>Ollama (Local, Free) 🏠</option>
+                                    <option value="gemini">Gemini (Cloud, Free) ⚡</option>
+                                    <option value="openai">OpenAI (Cloud, Paid) 🚀</option>
+                                    <option value="auto">Auto (Fallback Chain) 🔄</option>
+                                </select>
+                                <small class="text-muted">Auto tries Ollama → Gemini → OpenAI</small>
+                            </div>
                         </div>
                     </div>
 
                     <div class="text-center mt-4">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
                             <i class="bi bi-magic"></i> Analyze File
                         </button>
                     </div>
@@ -274,9 +342,76 @@
         let currentSessionId = null;
         let conceptsData = {};
         let selectedLLMProvider = 'auto'; // Store user's LLM choice
+        let currentMode = 'questions'; // Track current analysis mode
+        
+        // Mode switching
+        document.querySelectorAll('input[name="analysisMode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const questionMode = document.getElementById('questionModeInputs');
+                const activityMode = document.getElementById('activityModeInputs');
+                const submitBtn = document.getElementById('submitBtn');
+                
+                if (this.value === 'questions') {
+                    questionMode.classList.remove('d-none');
+                    activityMode.classList.add('d-none');
+                    submitBtn.innerHTML = '<i class="bi bi-magic"></i> Analyze File';
+                    currentMode = 'questions';
+                    // Make question mode file required
+                    document.getElementById('fileInput').required = true;
+                    document.getElementById('exitTicketFile').required = false;
+                    document.getElementById('activityTemplateFile').required = false;
+                } else {
+                    questionMode.classList.add('d-none');
+                    activityMode.classList.remove('d-none');
+                    submitBtn.innerHTML = '<i class="bi bi-clipboard-check"></i> Analyze Activity';
+                    currentMode = 'activity';
+                    // Make activity mode files required
+                    document.getElementById('fileInput').required = false;
+                    document.getElementById('exitTicketFile').required = true;
+                    document.getElementById('activityTemplateFile').required = true;
+                }
+            });
+        });
+
+        // Activity mode file selection
+        document.getElementById('exitTicketFile').addEventListener('change', function() {
+            document.getElementById('exitTicketName').textContent = this.files[0]?.name || '-';
+            updateActivityFileInfo();
+        });
+
+        document.getElementById('activityTemplateFile').addEventListener('change', function() {
+            document.getElementById('activityTemplateName').textContent = this.files[0]?.name || '-';
+            updateActivityFileInfo();
+        });
+
+        function updateActivityFileInfo() {
+            const exitFile = document.getElementById('exitTicketFile').files[0];
+            const activityFile = document.getElementById('activityTemplateFile').files[0];
+            const fileInfo = document.getElementById('activityFileInfo');
+            
+            if (exitFile || activityFile) {
+                fileInfo.classList.remove('d-none');
+            } else {
+                fileInfo.classList.add('d-none');
+            }
+        }
         
         // Update badge when LLM provider changes
         document.getElementById('llmProvider').addEventListener('change', function() {
+            const llmBadge = document.getElementById('llmBadge');
+            const provider = this.value;
+            
+            const providerNames = {
+                'ollama': '✓ Powered by Ollama (Local)',
+                'gemini': '✓ Powered by Gemini (Cloud)',
+                'openai': '✓ Powered by OpenAI (Cloud)',
+                'auto': '✓ Powered by AI (Auto Fallback)'
+            };
+            
+            llmBadge.textContent = providerNames[provider] || '✓ Powered by AI';
+        });
+
+        document.getElementById('llmProviderActivity').addEventListener('change', function() {
             const llmBadge = document.getElementById('llmBadge');
             const provider = this.value;
             
@@ -325,11 +460,21 @@
         uploadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            if (currentMode === 'questions') {
+                await handleQuestionModeSubmit();
+            } else {
+                await handleActivityModeSubmit();
+            }
+        });
+
+        // Handle Question Generation Mode
+        async function handleQuestionModeSubmit() {
             // Store the selected LLM provider
             selectedLLMProvider = document.getElementById('llmProvider').value;
 
             // Show loading
             loadingCard.classList.remove('d-none');
+            loadingCard.querySelector('p').textContent = 'Analyzing exit tickets for incorrect answers...';
             resultsCard.classList.add('d-none');
             uploadForm.parentElement.parentElement.classList.add('d-none');
 
@@ -364,7 +509,109 @@
                 alert('Error: ' + error.message);
                 uploadForm.parentElement.parentElement.classList.remove('d-none');
             }
-        });
+        }
+
+        // Handle Activity Analysis Mode
+        async function handleActivityModeSubmit() {
+            const exitTicketFile = document.getElementById('exitTicketFile').files[0];
+            const activityTemplateFile = document.getElementById('activityTemplateFile').files[0];
+
+            if (!exitTicketFile || !activityTemplateFile) {
+                alert('Please select both exit ticket and activity template files');
+                return;
+            }
+
+            // Get LLM provider
+            selectedLLMProvider = document.getElementById('llmProviderActivity').value;
+
+            // Show loading
+            loadingCard.classList.remove('d-none');
+            loadingCard.querySelector('h5').textContent = 'Analyzing Activity Responses...';
+            loadingCard.querySelector('p').textContent = 'Using AI to analyze student responses (this may take a few minutes)...';
+            resultsCard.classList.add('d-none');
+            uploadForm.parentElement.parentElement.classList.add('d-none');
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('exit_ticket', exitTicketFile);
+            formData.append('activity_template', activityTemplateFile);
+            formData.append('llm_provider', selectedLLMProvider);
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutes
+
+                const response = await fetch('/analyze-activity', {
+                    method: 'POST',
+                    body: formData,
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Unknown error');
+                }
+
+                // Hide loading
+                loadingCard.classList.add('d-none');
+
+                // Show activity results
+                displayActivityResults(data);
+
+            } catch (error) {
+                loadingCard.classList.add('d-none');
+                if (error.name === 'AbortError') {
+                    alert('Request timed out after 10 minutes. The analysis might still be running. Please try again.');
+                } else {
+                    alert('Error: ' + error.message);
+                }
+                uploadForm.parentElement.parentElement.classList.remove('d-none');
+            }
+        }
+
+        function displayActivityResults(data) {
+            // Replace results card with activity-specific results
+            resultsCard.innerHTML = `
+                <h5 class="card-title"><i class="bi bi-check-circle-fill text-success"></i> Activity Analysis Complete!</h5>
+                <hr>
+                
+                <div class="alert alert-info">
+                    <strong>Analysis Summary:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>Total Students Analyzed: <strong>${data.summary.total_students}</strong></li>
+                        <li>Top Responses Selected: <strong>${data.summary.top_per_question}</strong> per question</li>
+                        <li>Scoring Method: <strong>${data.summary.scoring_method}</strong></li>
+                        <hr class="my-2">
+                        <li><strong>Q1:</strong> Analyzed ${data.summary.q1_analyzed}, Selected top ${data.summary.q1_selected}</li>
+                        <li><strong>Q2:</strong> Analyzed ${data.summary.q2_analyzed}, Selected top ${data.summary.q2_selected}</li>
+                        <li><strong>Q3:</strong> Analyzed ${data.summary.q3_analyzed}, Selected top ${data.summary.q3_selected}</li>
+                    </ul>
+                </div>
+
+                ${data.warnings && data.warnings.length > 0 ? `
+                <div class="alert alert-warning">
+                    <strong><i class="bi bi-exclamation-triangle"></i> Warnings:</strong>
+                    <ul class="mb-0 mt-2">
+                        ${data.warnings.map(w => `<li><small>${w}</small></li>`).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                <div class="text-center mt-4">
+                    <a href="/download/${data.output_file}" class="btn btn-success btn-lg">
+                        <i class="bi bi-download"></i> Download Analysis Report (.docx)
+                    </a>
+                </div>
+
+                <button class="btn btn-outline-secondary mt-4 w-100" onclick="location.reload()">
+                    <i class="bi bi-arrow-clockwise"></i> Analyze Another Activity
+                </button>
+            `;
+            
+            resultsCard.classList.remove('d-none');
+        }
 
         function displayResults(data) {
             // Summary
