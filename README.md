@@ -1,11 +1,10 @@
-# Adaptive Question Generation & Activity Analysis Tool based Agent for Teachers
+# Adaptive Question Generation & Activity Analysis Tool-based Agent for Teachers
 
 An Agentic AI application for educators with **two powerful modes**:
 1. **Programming Courses**: Analyze exit tickets and generate adaptive practice questions
 2. **Non-Programming Courses**: Analyze activity-based exit tickets with qualitative insights
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
 
 ## 🚀 Quick Start
 
@@ -23,14 +22,14 @@ python3 app.py
 
 Open **http://localhost:5000** and select your analysis mode!
 
-📖 **[Full Installation Guide](INSTALLATION.md)**
+
 
 ## ✨ Two Analysis Modes
 
 ### 🖥️ Mode 1: Generate Practice Questions (Programming Courses)
 
 For courses with **correct/incorrect answers** (MCQs, coding questions):
-- Upload exit ticket with student responses
+- Upload the exit ticket with student responses
 - AI generates adaptive questions at 3 levels (beginner, intermediate, advanced)
 - Download Word documents with practice questions
 - Supports Python, Java, C++, JavaScript
@@ -73,7 +72,7 @@ For courses with **open-ended reflections** (activity-based learning):
 | student2@x.com| Function        | 0 (incorrect)            |
 ```
 
-### For Activity Analysis (NEW!)
+### For Activity Analysis 
 
 **Exit Ticket Columns:**
 - `Student_ID`: Unique identifier
@@ -184,11 +183,7 @@ llm:
 # Activity Analysis Settings
 activity_analysis:
   top_responses_per_question: 10
-  scoring_weights:
-    keyword_match: 0.4
-    llm_quality: 0.4
-    theme_diversity: 0.2
-```
+  
 
 ## 📚 Documentation
 
@@ -198,16 +193,8 @@ activity_analysis:
 
 
 
-## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- Built with [Flask](https://flask.palletsprojects.com/)
-- AI powered by [Ollama](https://ollama.ai/), [Google Gemini](https://ai.google.dev/), or [OpenAI](https://openai.com/)
-- NLP with [scikit-learn](https://scikit-learn.org/) and [NLTK](https://www.nltk.org/)
-- UI components from [Bootstrap](https://getbootstrap.com/)
 
 ## ⭐ Star History
 
