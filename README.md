@@ -1,6 +1,6 @@
-# Adaptive Question Generation & Activity Analysis Tool for Teachers
+# Adaptive Question Generation & Activity Analysis Tool based Agent for Teachers
 
-An intelligent web application for educators with **two powerful modes**:
+An Agentic AI application for educators with **two powerful modes**:
 1. **Programming Courses**: Analyze exit tickets and generate adaptive practice questions
 2. **Non-Programming Courses**: Analyze activity-based exit tickets with qualitative insights
 
@@ -35,7 +35,7 @@ For courses with **correct/incorrect answers** (MCQs, coding questions):
 - Download Word documents with practice questions
 - Supports Python, Java, C++, JavaScript
 
-### 📊 Mode 2: Activity Analysis (Non-Programming Courses) - NEW!
+### 📊 Mode 2: Activity Analysis (Non-Programming Courses) 
 
 For courses with **open-ended reflections** (activity-based learning):
 - Upload exit ticket + activity template
@@ -49,12 +49,12 @@ For courses with **open-ended reflections** (activity-based learning):
 ### Programming Course Features
 - **Concept-by-Concept Generation**: Generate questions one concept at a time
 - **AI Fallback Support**: Ollama → Gemini → OpenAI for reliability
-- **Google Forms Support**: Upload directly from Google Forms/Microsoft Forms
+- **Google Forms Support**: Upload directly from Google Forms/Microsoft Forms as an exit ticket
 - **Multi-Level Questions**: Beginner, Intermediate, Advanced difficulty
 - **Multi-Language**: Python, Java, C++, JavaScript
 - **Word Document Output**: Professional formatted question papers
 
-### Activity Analysis Features (NEW!)
+### Activity Analysis Features
 - **Visual Analytics Dashboard**: Tables showing learning outcomes
 - **Cognitive Domain**: Categorizes learning quality
 - **Affective Domain**: Measures student engagement
@@ -196,9 +196,7 @@ activity_analysis:
 - **[USAGE_GUIDE.md](USAGE_GUIDE.md)** - Detailed usage instructions
 - **[ACTIVITY_ANALYSIS_GUIDE.md](ACTIVITY_ANALYSIS_GUIDE.md)** - Activity analysis documentation
 
-## 🤝 Contributing
 
-Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## 📄 License
 
