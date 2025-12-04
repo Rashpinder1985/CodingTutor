@@ -320,17 +320,18 @@
         <!-- Info -->
         <div class="card">
             <div class="card-body">
-                <h6><i class="bi bi-info-circle"></i> Required Excel Format:</h6>
+                <h6><i class="bi bi-info-circle"></i> About This Agent:</h6>
                 <small class="text-muted">
-                    Your Excel file must have these columns:<br>
-                    <code>Student_ID, Question_ID, Student_Answer, Correct_Answer, Concept, Question_Type, Course_Category, Programming_Language (optional)</code>
+                    <strong>For Programming Courses:</strong> Analyzes exit tickets and generates adaptive questions (beginner/intermediate/advanced) for concepts where students answered incorrectly.<br><br>
+                    <strong>For Non-Programming Courses:</strong> Performs quantitative analysis on activity-based exit tickets, identifying top 10 responses on: (1) What students learned (cognitive domain), (2) Top questions students asked related to topics discussed, and (3) Affective domain - what students enjoyed and want to explore further based on class activities.<br><br>
+                    <strong>Required Excel Format:</strong> <code>Student_ID, Question_ID, Student_Answer, Correct_Answer, Concept, Question_Type, Course_Category</code> (for programming) or <code>Student_ID, Q1_Response, Q2_Response, Q3_Response</code> (for activity analysis)
                 </small>
             </div>
         </div>
 
         <!-- Footer -->
         <div class="text-center text-white mt-4">
-            <small>Made with ❤️ for Teachers | Powered by Ollama (Local AI)</small>
+            <small>Made with ❤️ for Teachers | Powered by Ollama, Gemini & OpenAI LLMs</small>
         </div>
     </div>
 
