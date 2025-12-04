@@ -185,16 +185,6 @@ activity_analysis:
   top_responses_per_question: 10
   
 
-## 📚 Documentation
-
-- **[INSTALLATION.md](INSTALLATION.md)** - Complete setup guide
-- **[USAGE_GUIDE.md](USAGE_GUIDE.md)** - Detailed usage instructions
-- **[ACTIVITY_ANALYSIS_GUIDE.md](ACTIVITY_ANALYSIS_GUIDE.md)** - Activity analysis documentation
-
-
-
-
-
 
 ## ⭐ Star History
 
