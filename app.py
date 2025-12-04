@@ -444,7 +444,7 @@ def analyze_activity():
         config['llm']['fallback_enabled'] = True  # Always enable fallback
         
         # Initialize LLM and analyzer
-        llm_gen = LLMGenerator(config['llm'])
+        llm_gen = LLMGenerator(config)  # Pass full config, not just config['llm']
         analyzer = ActivityAnalyzer(config, llm_gen)
         
         # Generate analysis report

@@ -287,12 +287,21 @@ def _add_executive_summary(doc: Document, results: Dict, recommendations: List[s
 
 
 def _add_q1_section(doc: Document, q1_results: Dict):
-    """Q1 section - SIMPLE format: Student ID + Response only."""
+    """Q1 section - Shows concept keywords and top learning responses."""
     doc.add_heading('Q1: What Students Learned', 1)
     
     doc.add_paragraph(
         'Question: Write three things you learned during this lesson.'
     )
+    
+    # Display concept keywords extracted from activity (cognitive domain measurement)
+    concept_keywords = q1_results.get('concept_keywords', [])
+    if concept_keywords:
+        doc.add_heading('Keywords: (Concepts Taught - Cognitive Domain)', 2)
+        p = doc.add_paragraph('Example - ')
+        keywords_text = ', '.join(concept_keywords[:15])  # Show top 15 concepts
+        p.add_run(keywords_text)
+        doc.add_paragraph()
     
     cognitive = q1_results.get('cognitive_categorization', {})
     learned_count = cognitive.get('learned_well', {}).get('count', 0)
@@ -326,7 +335,7 @@ def _add_q1_section(doc: Document, q1_results: Dict):
 
 
 def _add_q2_section(doc: Document, q2_results: Dict):
-    """Q2 section - SIMPLE format: Student ID + Question only."""
+    """Q2 section - Shows concept-based themes with example questions and frequency."""
     doc.add_heading('Q2: Student Questions', 1)
     
     doc.add_paragraph(
@@ -341,29 +350,66 @@ def _add_q2_section(doc: Document, q2_results: Dict):
     
     doc.add_paragraph()
     
+    # Display theme-based grouping with frequency
+    themes = q2_results.get('themes', {})
+    if themes:
+        doc.add_heading('Questions by Concept Theme (FAQ - Top Categories)', 2)
+        
+        # Create table: Theme | Example Student Questions | Frequency
+        table = doc.add_table(rows=1, cols=3)
+        table.style = 'Light Grid Accent 1'
+        
+        # Header row
+        header_cells = table.rows[0].cells
+        header_cells[0].text = 'Theme'
+        header_cells[1].text = 'Example Student Questions'
+        header_cells[2].text = 'Frequency'
+        
+        # Make header bold
+        for cell in header_cells:
+            for paragraph in cell.paragraphs:
+                for run in paragraph.runs:
+                    run.bold = True
+        
+        # Add theme rows
+        for theme_name, theme_data in list(themes.items())[:10]:  # Top 10 themes
+            questions = theme_data.get('questions', [])
+            frequency = theme_data.get('frequency', 0)
+            
+            if questions:
+                # Get first example question
+                example_question = questions[0].get('question', 'No question')
+                if len(example_question) > 150:
+                    example_question = example_question[:150] + '...'
+                
+                row_cells = table.add_row().cells
+                row_cells[0].text = theme_name
+                row_cells[1].text = example_question
+                row_cells[2].text = str(frequency)
+        
+        doc.add_paragraph()
+    
+    # Also show top 10 questions
     top_questions = q2_results.get('top_10_questions', [])
     
-    doc.add_heading(f'Top {len(top_questions)} Student Questions', 2)
-    
-    if not top_questions:
-        doc.add_paragraph('No questions to display.')
-        return
-    
-    for i, quest in enumerate(top_questions, 1):
-        # Simple heading: just number and student ID
-        doc.add_heading(f'{i}. Student {quest.get("student_id", "Unknown")}', 3)
+    if top_questions:
+        doc.add_heading(f'Top {len(top_questions)} Student Questions', 2)
         
-        # Question text - clean and simple
-        p = doc.add_paragraph()
-        question_text = quest.get('question', 'No question')
-        p.add_run(f'"{question_text}"')
-        p.style = 'Quote'
-        
-        doc.add_paragraph()  # Spacing
+        for i, quest in enumerate(top_questions, 1):
+            # Simple heading: just number and student ID
+            doc.add_heading(f'{i}. Student {quest.get("student_id", "Unknown")}', 3)
+            
+            # Question text - clean and simple
+            p = doc.add_paragraph()
+            question_text = quest.get('question', 'No question')
+            p.add_run(f'"{question_text}"')
+            p.style = 'Quote'
+            
+            doc.add_paragraph()  # Spacing
 
 
 def _add_q3_section(doc: Document, q3_results: Dict):
-    """Q3 section - SIMPLE format: Student ID + Insight only."""
+    """Q3 section - Shows content-related vs pedagogy-related themes."""
     doc.add_heading('Q3: Student Interests & Exploration', 1)
     
     doc.add_paragraph(
@@ -380,22 +426,77 @@ def _add_q3_section(doc: Document, q3_results: Dict):
     
     doc.add_paragraph()
     
+    # Display content-related themes
+    content_themes = q3_results.get('content_themes', {})
+    pedagogy_themes = q3_results.get('pedagogy_themes', {})
+    
+    if content_themes or pedagogy_themes:
+        doc.add_heading('1 Aspect They Found Interesting', 2)
+        
+        # Create table: Concept/Theme | Example Phrasing
+        if content_themes or pedagogy_themes:
+            table = doc.add_table(rows=1, cols=2)
+            table.style = 'Light Grid Accent 1'
+            
+            # Header row
+            header_cells = table.rows[0].cells
+            header_cells[0].text = 'Concept/Theme'
+            header_cells[1].text = 'Example Phrasing'
+            
+            # Make header bold
+            for cell in header_cells:
+                for paragraph in cell.paragraphs:
+                    for run in paragraph.runs:
+                        run.bold = True
+            
+            # Add content-related themes
+            for theme_name, theme_data in content_themes.items():
+                example = theme_data.get('example_phrasing', '')
+                if len(example) > 200:
+                    example = example[:200] + '...'
+                
+                row_cells = table.add_row().cells
+                row_cells[0].text = theme_name
+                row_cells[1].text = example
+            
+            # Add pedagogy-related themes (with visual distinction)
+            for theme_name, theme_data in pedagogy_themes.items():
+                example = theme_data.get('example_phrasing', '')
+                if len(example) > 200:
+                    example = example[:200] + '...'
+                
+                row_cells = table.add_row().cells
+                # Mark pedagogy themes (could use formatting if needed)
+                row_cells[0].text = theme_name
+                row_cells[1].text = example
+            
+            doc.add_paragraph()
+            
+            # Add categorization labels
+            if content_themes and pedagogy_themes:
+                p = doc.add_paragraph()
+                p.add_run('Content-related: ').bold = True
+                p.add_run('Themes focusing on concepts, topics, and subject matter.')
+                doc.add_paragraph()
+                p = doc.add_paragraph()
+                p.add_run('Pedagogy-related: ').bold = True
+                p.add_run('Themes focusing on teaching methods, activities, and learning approaches.')
+                doc.add_paragraph()
+    
+    # Also show top 10 responses
     top_responses = q3_results.get('top_10_responses', [])
     
-    doc.add_heading(f'Top {len(top_responses)} Student Insights', 2)
-    
-    if not top_responses:
-        doc.add_paragraph('No responses to display.')
-        return
-    
-    for i, resp in enumerate(top_responses, 1):
-        # Simple heading: just number and student ID
-        doc.add_heading(f'{i}. Student {resp.get("student_id", "Unknown")}', 3)
+    if top_responses:
+        doc.add_heading(f'Top {len(top_responses)} Student Insights', 2)
         
-        # Response text - clean and simple
-        p = doc.add_paragraph()
-        response_text = resp.get('response', 'No response')
-        p.add_run(f'"{response_text}"')
-        p.style = 'Quote'
-        
-        doc.add_paragraph()  # Spacing
+        for i, resp in enumerate(top_responses, 1):
+            # Simple heading: just number and student ID
+            doc.add_heading(f'{i}. Student {resp.get("student_id", "Unknown")}', 3)
+            
+            # Response text - clean and simple
+            p = doc.add_paragraph()
+            response_text = resp.get('response', 'No response')
+            p.add_run(f'"{response_text}"')
+            p.style = 'Quote'
+            
+            doc.add_paragraph()  # Spacing

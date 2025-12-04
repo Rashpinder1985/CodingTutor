@@ -160,3 +160,4 @@ class ActivityInputProcessor:
         else:
             return 'large'
 
+

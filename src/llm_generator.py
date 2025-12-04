@@ -630,4 +630,25 @@ Keep it concise but informative."""
         ]
         
         return self._make_api_call(messages, temperature=0.7)
+    
+    def generate_content(self, prompt: str, system_message: str = None) -> str:
+        """
+        Generate content from a simple prompt string.
+        
+        Args:
+            prompt: User prompt text
+            system_message: Optional system message (defaults to generic assistant)
+            
+        Returns:
+            Generated text response
+        """
+        if system_message is None:
+            system_message = "You are a helpful assistant that provides accurate and detailed responses."
+        
+        messages = [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": prompt}
+        ]
+        
+        return self._make_api_call(messages, temperature=self.temperature)
 
