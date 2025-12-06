@@ -48,3 +48,8 @@ generated_questions.json
 *.log
 
 .env.local
+
+# Database files
+*.db
+instance/
+app.db
