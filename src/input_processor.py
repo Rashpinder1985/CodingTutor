@@ -160,9 +160,9 @@ class InputProcessor:
                     if programming_language:
                         programming_language = str(programming_language).lower().strip()
             
-            # Create concept key (URL-friendly)
-            # Sanitize concept name for use as file path key
-            # Remove invalid path characters: /, \, :, *, ?, ", <, >, |
+            # Create concept key (URL-friendly for file paths only)
+            # IMPORTANT: concept_name below MUST preserve original with all special characters
+            # Only concept_key is sanitized for use in file paths
             concept_key = concept.lower().replace(' ', '_').replace('-', '_')
             concept_key = concept_key.replace('/', '_').replace('\\', '_').replace(':', '_')
             concept_key = concept_key.replace('*', '_').replace('?', '_').replace('"', '_')
@@ -173,8 +173,9 @@ class InputProcessor:
             # Remove leading/trailing underscores
             concept_key = concept_key.strip('_')
             
+            # Store with original concept name (preserves all special characters for programming syntax)
             grouped_data[concept_key] = {
-                'concept_name': concept,
+                'concept_name': concept,  # ORIGINAL - never sanitized, preserves /, \, :, *, etc.
                 'course_category': course_category,
                 'programming_language': programming_language,
                 'affected_students': affected_students,
