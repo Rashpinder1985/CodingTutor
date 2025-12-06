@@ -6,6 +6,7 @@ User registration, login, and session management.
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import session, redirect, url_for, request, jsonify
 from functools import wraps
+from typing import Tuple, Optional
 import re
 import logging
 from src.database import db, User, UserAPIKey
