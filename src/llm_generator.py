@@ -152,6 +152,13 @@ class LLMGenerator:
         """Initialize a specific provider."""
         try:
             if provider == 'ollama':
+                # Check if we're in a cloud environment (Railway, Render, etc.)
+                # Ollama only works locally, skip on cloud
+                is_cloud = os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER') or os.getenv('DYNO') or os.getenv('FLY_APP_NAME')
+                if is_cloud:
+                    logger.warning("Ollama is not available in cloud environments. Skipping Ollama initialization.")
+                    return False
+                
                 # Initialize Ollama client (uses OpenAI-compatible API)
                 self.client = OpenAI(
                     base_url='http://localhost:11434/v1',
@@ -253,11 +260,19 @@ class LLMGenerator:
         if self.fallback_enabled and self.fallback_providers:
             logger.warning(f"Primary provider {self.provider} failed, trying fallbacks...")
             
+            # Check if we're in cloud environment (skip Ollama)
+            is_cloud = os.getenv('RAILWAY_ENVIRONMENT') or os.getenv('RENDER') or os.getenv('DYNO') or os.getenv('FLY_APP_NAME')
+            
             for fallback in self.fallback_providers:
                 try:
                     fb_provider = fallback.get('provider')
                     fb_model = fallback.get('model')
                     fb_api_key_env = fallback.get('api_key_env')
+                    
+                    # Skip Ollama in cloud environments
+                    if is_cloud and fb_provider == 'ollama':
+                        logger.info(f"Skipping Ollama fallback (not available in cloud)")
+                        continue
                     
                     logger.info(f"Attempting fallback to {fb_provider} ({fb_model})...")
                     
