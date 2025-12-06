@@ -107,15 +107,21 @@ def parse_json_response(response: str, logger_instance=None) -> Optional[Dict]:
 class LLMGenerator:
     """Generates question content using LLM APIs."""
     
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, gemini_api_key: Optional[str] = None, openai_api_key: Optional[str] = None):
         """
         Initialize the LLM generator with fallback support.
         
         Args:
             config: Configuration dictionary with LLM settings
+            gemini_api_key: Optional Gemini API key (overrides environment variable)
+            openai_api_key: Optional OpenAI API key (overrides environment variable)
         """
         self.config = config
         self.llm_config = config.get('llm', {})
+        
+        # Store user-provided API keys
+        self.user_gemini_key = gemini_api_key
+        self.user_openai_key = openai_api_key
         
         # Primary provider settings
         self.provider = self.llm_config.get('provider', 'ollama').lower()
@@ -172,11 +178,14 @@ class LLMGenerator:
                     logger.warning("Google Gemini SDK not installed. Install with: pip install google-generativeai")
                     return False
                 
-                # Get API key
-                key_env = api_key_env or self.llm_config.get('api_key_env', 'GEMINI_API_KEY')
-                api_key = os.getenv(key_env)
+                # Get API key: use user-provided key first, then environment variable
+                api_key = self.user_gemini_key
                 if not api_key:
-                    logger.warning(f"Gemini API key not found. Set {key_env} environment variable.")
+                    key_env = api_key_env or self.llm_config.get('api_key_env', 'GEMINI_API_KEY')
+                    api_key = os.getenv(key_env)
+                
+                if not api_key:
+                    logger.warning(f"Gemini API key not found. Set {key_env} environment variable or provide via user API keys.")
                     return False
                 
                 # Initialize Gemini
@@ -186,13 +195,17 @@ class LLMGenerator:
                 return True
                 
             elif provider == 'openai':
-                # Initialize OpenAI client
-                key_env = api_key_env or self.llm_config.get('api_key_env', 'OPENAI_API_KEY')
-                api_key = os.getenv(key_env)
+                # Get API key: use user-provided key first, then environment variable
+                api_key = self.user_openai_key
                 if not api_key:
-                    logger.warning(f"OpenAI API key not found. Set {key_env} environment variable.")
+                    key_env = api_key_env or self.llm_config.get('api_key_env', 'OPENAI_API_KEY')
+                    api_key = os.getenv(key_env)
+                
+                if not api_key:
+                    logger.warning(f"OpenAI API key not found. Set {key_env} environment variable or provide via user API keys.")
                     return False
                 
+                # Initialize OpenAI client
                 self.client = OpenAI(api_key=api_key)
                 logger.info(f"Initialized LLM generator with OpenAI model: {model}")
                 return True

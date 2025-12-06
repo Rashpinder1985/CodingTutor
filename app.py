@@ -43,10 +43,21 @@ from src.input_processor import InputProcessor
 from src.question_generator import QuestionGenerator
 from src.output_formatter import OutputFormatter
 from src.word_formatter import create_word_document
+from src.database import db, init_db, get_db_uri
+from src.auth import register_user, login_user, get_current_user, require_auth, require_api_key
+from src.api_key_manager import save_user_api_keys, get_user_api_keys, get_api_key_status
 
 app = Flask(__name__)
-app.secret_key = 'dev_secret_key_change_in_production'
+# Use SECRET_KEY from environment or default (change in production!)
+app.secret_key = os.getenv('SECRET_KEY', 'dev_secret_key_change_in_production')
 CORS(app)
+
+# Database configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = get_db_uri()
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize database
+init_db(app)
 
 # Configuration
 UPLOAD_FOLDER = tempfile.gettempdir()
@@ -125,6 +136,144 @@ def create_download_zip(output_data):
 def index():
     """Main page."""
     return render_template('index.html')
+
+# Authentication routes
+@app.route('/api/register', methods=['POST'])
+def api_register():
+    """Register a new user."""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+        
+        if not email or not password:
+            return jsonify({'error': 'Email and password are required'}), 400
+        
+        success, message, user = register_user(email, password)
+        
+        if success:
+            # Set session
+            session['user_id'] = user.id
+            session['user_email'] = user.email
+            return jsonify({
+                'success': True,
+                'message': message,
+                'user': {
+                    'id': user.id,
+                    'email': user.email
+                }
+            }), 201
+        else:
+            return jsonify({'error': message}), 400
+            
+    except Exception as e:
+        logger.error(f"Registration error: {e}")
+        return jsonify({'error': f'Registration failed: {str(e)}'}), 500
+
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    """Login a user."""
+    try:
+        data = request.get_json()
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+        
+        if not email or not password:
+            return jsonify({'error': 'Email and password are required'}), 400
+        
+        success, message, user = login_user(email, password)
+        
+        if success:
+            # Set session
+            session['user_id'] = user.id
+            session['user_email'] = user.email
+            return jsonify({
+                'success': True,
+                'message': message,
+                'user': {
+                    'id': user.id,
+                    'email': user.email
+                }
+            }), 200
+        else:
+            return jsonify({'error': message}), 401
+            
+    except Exception as e:
+        logger.error(f"Login error: {e}")
+        return jsonify({'error': f'Login failed: {str(e)}'}), 500
+
+@app.route('/api/logout', methods=['POST'])
+def api_logout():
+    """Logout current user."""
+    session.clear()
+    return jsonify({'success': True, 'message': 'Logged out successfully'}), 200
+
+@app.route('/api/user/status', methods=['GET'])
+def api_user_status():
+    """Get current user status and API key status."""
+    user = get_current_user()
+    if not user:
+        return jsonify({
+            'authenticated': False,
+            'user': None,
+            'api_keys': {'has_gemini': False, 'has_openai': False, 'has_any': False}
+        }), 200
+    
+    api_status = get_api_key_status(user.id)
+    return jsonify({
+        'authenticated': True,
+        'user': {
+            'id': user.id,
+            'email': user.email
+        },
+        'api_keys': api_status
+    }), 200
+
+@app.route('/api/user/api-keys', methods=['GET'])
+def api_get_api_keys():
+    """Get user's API keys (masked for security)."""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    api_status = get_api_key_status(user.id)
+    return jsonify({
+        'has_gemini': api_status['has_gemini'],
+        'has_openai': api_status['has_openai'],
+        'has_any': api_status['has_any']
+    }), 200
+
+@app.route('/api/user/api-keys', methods=['POST'])
+@require_auth
+def api_save_api_keys():
+    """Save user's API keys."""
+    user = get_current_user()
+    if not user:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        data = request.get_json()
+        gemini_key = data.get('gemini_api_key', '').strip()
+        openai_key = data.get('openai_api_key', '').strip()
+        
+        # At least one key must be provided
+        if not gemini_key and not openai_key:
+            return jsonify({'error': 'At least one API key (Gemini or OpenAI) is required'}), 400
+        
+        success, message = save_user_api_keys(user.id, gemini_key or None, openai_key or None)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': message,
+                'api_keys': get_api_key_status(user.id)
+            }), 200
+        else:
+            return jsonify({'error': message}), 400
+            
+    except Exception as e:
+        logger.error(f"Error saving API keys: {e}")
+        return jsonify({'error': f'Failed to save API keys: {str(e)}'}), 500
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -231,6 +380,7 @@ def upload_file():
         return jsonify({'error': f'Error processing file: {str(e)}'}), 500
 
 @app.route('/generate-concept', methods=['POST'])
+@require_api_key
 def generate_concept():
     """Generate questions for a single concept."""
     try:
@@ -292,9 +442,13 @@ def generate_concept():
             # Keep fallback enabled for 'auto' mode
             config['llm']['fallback_enabled'] = True
         
+        # Get user's API keys
+        user = get_current_user()
+        gemini_key, openai_key = get_user_api_keys(user.id) if user else (None, None)
+        
         # Generate questions for ONLY this concept
         single_concept_data = {concept_key: concepts_data[concept_key]}
-        generator = QuestionGenerator(config)
+        generator = QuestionGenerator(config, gemini_api_key=gemini_key, openai_api_key=openai_key)
         questions_data = generator.generate_all_concepts(single_concept_data)
         
         if not questions_data or concept_key not in questions_data:
@@ -399,6 +553,7 @@ def download_all(filename):
     )
 
 @app.route('/analyze-activity', methods=['POST'])
+@require_api_key
 def analyze_activity():
     """Analyze activity-based exit ticket with two-file upload."""
     try:
@@ -450,13 +605,17 @@ def analyze_activity():
         if warnings:
             logger.warning(f"Validation warnings: {warnings[:5]}")  # Log first 5 warnings
         
+        # Get user's API keys
+        user = get_current_user()
+        gemini_key, openai_key = get_user_api_keys(user.id) if user else (None, None)
+        
         # Configure LLM
         config = load_config()
         config['llm']['provider'] = llm_provider
         config['llm']['fallback_enabled'] = True  # Always enable fallback
         
-        # Initialize LLM and analyzer
-        llm_gen = LLMGenerator(config)  # Pass full config, not just config['llm']
+        # Initialize LLM and analyzer with user's API keys
+        llm_gen = LLMGenerator(config, gemini_api_key=gemini_key, openai_api_key=openai_key)
         analyzer = ActivityAnalyzer(config, llm_gen)
         
         # Generate analysis report

@@ -17,16 +17,18 @@ logger = logging.getLogger(__name__)
 class QuestionGenerator:
     """Main engine for generating adaptive questions."""
     
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, gemini_api_key=None, openai_api_key=None):
         """
         Initialize the question generator.
         
         Args:
             config: Configuration dictionary
+            gemini_api_key: Optional Gemini API key (overrides environment variable)
+            openai_api_key: Optional OpenAI API key (overrides environment variable)
         """
         self.config = config
         self.question_limits = config.get('question_limits', {})
-        self.llm_generator = LLMGenerator(config)
+        self.llm_generator = LLMGenerator(config, gemini_api_key=gemini_api_key, openai_api_key=openai_api_key)
         self.feedback_generator = FeedbackResourceGenerator(config)
         
         logger.info("Question generator initialized")
