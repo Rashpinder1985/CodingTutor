@@ -161,7 +161,17 @@ class InputProcessor:
                         programming_language = str(programming_language).lower().strip()
             
             # Create concept key (URL-friendly)
+            # Sanitize concept name for use as file path key
+            # Remove invalid path characters: /, \, :, *, ?, ", <, >, |
             concept_key = concept.lower().replace(' ', '_').replace('-', '_')
+            concept_key = concept_key.replace('/', '_').replace('\\', '_').replace(':', '_')
+            concept_key = concept_key.replace('*', '_').replace('?', '_').replace('"', '_')
+            concept_key = concept_key.replace('<', '_').replace('>', '_').replace('|', '_')
+            # Remove multiple consecutive underscores
+            while '__' in concept_key:
+                concept_key = concept_key.replace('__', '_')
+            # Remove leading/trailing underscores
+            concept_key = concept_key.strip('_')
             
             grouped_data[concept_key] = {
                 'concept_name': concept,

@@ -310,9 +310,18 @@ def generate_concept():
             'levels': questions_data[concept_key]
         }
         
+        # Sanitize concept_key for filename (remove any remaining invalid characters)
+        safe_concept_key = concept_key.replace('/', '_').replace('\\', '_').replace(':', '_')
+        safe_concept_key = safe_concept_key.replace('*', '_').replace('?', '_').replace('"', '_')
+        safe_concept_key = safe_concept_key.replace('<', '_').replace('>', '_').replace('|', '_')
+        safe_concept_key = safe_concept_key.strip('_')
+        
         # Create Word document
-        output_filename = f"concept_{concept_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+        output_filename = f"concept_{safe_concept_key}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
         # Generate Word document
         doc = create_word_document(concept_output)
