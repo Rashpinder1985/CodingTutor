@@ -331,7 +331,7 @@ def _add_q1_section(doc: Document, q1_results: Dict):
         p.add_run(f'"{response_text}"')
         p.style = 'Quote'
         
-            doc.add_paragraph()  # Spacing
+        doc.add_paragraph()  # Spacing
 
 
 def _add_q3_theme_table(doc: Document, themes: Dict):
