@@ -7,12 +7,13 @@ import logging
 import json
 from typing import Dict, List
 from datetime import datetime
+import re
 
 logger = logging.getLogger(__name__)
 
 
 class ActivityAnalyzer:
-    """Analyzes student activity responses using combined NLP and LLM approaches."""
+    """Analyzes student activity responses using combined NLP and LLM approaches with reasoning capabilities."""
     
     def __init__(self, config: Dict, llm_generator):
         """
@@ -51,7 +52,18 @@ class ActivityAnalyzer:
         # Get top N responses to select
         self.top_n = self.activity_config.get('top_responses_per_question', 10)
         
-        logger.info(f"ActivityAnalyzer initialized (top_n={self.top_n}, weights: K={self.weight_keyword}, Q={self.weight_quality}, D={self.weight_diversity})")
+        # Initialize reasoning components
+        from src.reasoning_agent import ReasoningAgent
+        from src.course_knowledge import CourseKnowledge
+        from src.adaptive_prompts import AdaptivePromptEngine
+        from src.quality_evaluator import QualityEvaluator
+        
+        self.reasoning_agent = ReasoningAgent(self.llm)
+        self.course_knowledge = CourseKnowledge()
+        self.adaptive_prompts = AdaptivePromptEngine(self.course_knowledge)
+        self.quality_evaluator = QualityEvaluator(self.course_knowledge)
+        
+        logger.info(f"ActivityAnalyzer initialized with reasoning capabilities (top_n={self.top_n}, weights: K={self.weight_keyword}, Q={self.weight_quality}, D={self.weight_diversity})")
     
     def _parse_llm_response(self, response_text: str) -> Dict:
         """Parse LLM JSON response with error handling."""
@@ -1150,5 +1162,60 @@ Return JSON:
         # Generate instructor recommendations
         results['recommendations'] = self.generate_instructor_recommendations(results)
         
+        # Reflect on analysis and learn
+        reasoning_metadata = {
+            'reflection': None,
+            'quality': None,
+            'comparison': None,
+            'domain_hints': []
+        }
+        
+        try:
+            # Extract domain hints from activity template
+            domain_hints = self._extract_domain_hints(activity_template)
+            reasoning_metadata['domain_hints'] = domain_hints
+            
+            # Reflect on analysis quality
+            reflection = self.reasoning_agent.reflect_on_analysis(
+                results, activity_template, 'non-programming'
+            )
+            reasoning_metadata['reflection'] = reflection
+            
+            # Update knowledge base
+            self.course_knowledge.update_knowledge(
+                'non-programming', reflection, 
+                domain=domain_hints[0] if domain_hints else None
+            )
+            
+            # Evaluate quality
+            quality = self.quality_evaluator.evaluate_analysis(results, activity_template)
+            reasoning_metadata['quality'] = quality
+            logger.info(f"Analysis quality: {quality.get('overall_score', 0):.1f}/100")
+            
+            # Compare with past performance
+            comparison = self.quality_evaluator.compare_with_past(quality, 'non-programming')
+            reasoning_metadata['comparison'] = comparison
+            if comparison.get('is_improving'):
+                logger.info(f"Quality improving: {comparison.get('improvement', 0):.1f} points above recent average")
+            
+        except Exception as e:
+            logger.warning(f"Reasoning/reflection failed (non-critical): {e}")
+        
+        # Add reasoning metadata to results
+        results['reasoning_metadata'] = reasoning_metadata
+        
         logger.info("Activity analysis complete")
         return results
+    
+    def _extract_domain_hints(self, activity_template: str) -> List[str]:
+        """Extract domain keywords from activity template for knowledge base."""
+        try:
+            # Simple extraction: look for capitalized words (likely domain terms)
+            # Find capitalized words (potential domain terms)
+            domain_terms = re.findall(r'\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b', activity_template)
+            # Filter out common words
+            common_words = {'The', 'This', 'Activity', 'Students', 'Will', 'Should', 'Can', 'May'}
+            domain_terms = [term for term in domain_terms if term not in common_words]
+            return domain_terms[:5]  # Return top 5
+        except Exception:
+            return []

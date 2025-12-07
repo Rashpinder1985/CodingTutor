@@ -96,7 +96,7 @@ class WordFormatter:
         doc.add_paragraph('• Review the explanations after completing all questions')
         doc.add_paragraph('• Use hints if you get stuck')
     
-    def _add_difficulty_section(self, doc: Document, difficulty: str, questions: List[Dict]):
+    def _add_difficulty_section(self, doc: Document, difficulty: str, questions: List[Dict], learning_resources: List[Dict] = None):
         """Add a section for a specific difficulty level."""
         # Skip if no questions
         if not questions or len(questions) == 0:
@@ -116,6 +116,38 @@ class WordFormatter:
             except Exception as e:
                 logger.error(f"Error adding question {idx} for {difficulty}: {e}")
                 continue
+        
+        # Add learning resources if available
+        if learning_resources and len(learning_resources) > 0:
+            doc.add_paragraph()
+            doc.add_heading('Learning Resources', 2)
+            p = doc.add_paragraph()
+            p.add_run('Additional resources to help you understand this concept:').bold = True
+            
+            for resource in learning_resources:
+                resource_para = doc.add_paragraph()
+                resource_para.style = 'List Bullet'
+                
+                # Format resource based on type
+                if isinstance(resource, dict):
+                    title = resource.get('title', resource.get('name', 'Resource'))
+                    url = resource.get('url', resource.get('link', ''))
+                    description = resource.get('description', '')
+                    
+                    if url:
+                        resource_para.add_run(f'{title}: ').bold = True
+                        resource_para.add_run(url)
+                        if description:
+                            resource_para.add_run(f' - {description}')
+                    else:
+                        resource_para.add_run(title)
+                        if description:
+                            resource_para.add_run(f' - {description}')
+                else:
+                    # If it's just a string
+                    resource_para.add_run(str(resource))
+            
+            doc.add_paragraph()
     
     def _add_question(self, doc: Document, number: int, question_data: Dict, difficulty: str):
         """Add a single question to the document."""

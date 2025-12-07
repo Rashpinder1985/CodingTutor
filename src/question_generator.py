@@ -9,13 +9,17 @@ from src.templates.programming_templates import ProgrammingTemplates
 from src.templates.non_programming_templates import NonProgrammingTemplates
 from src.llm_generator import LLMGenerator
 from src.feedback_generator import FeedbackResourceGenerator
+from src.reasoning_agent import ReasoningAgent
+from src.course_knowledge import CourseKnowledge
+from src.adaptive_prompts import AdaptivePromptEngine
+from src.quality_evaluator import QualityEvaluator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class QuestionGenerator:
-    """Main engine for generating adaptive questions."""
+    """Main engine for generating adaptive questions with reasoning capabilities."""
     
     def __init__(self, config: Dict, gemini_api_key=None, openai_api_key=None):
         """
@@ -31,7 +35,13 @@ class QuestionGenerator:
         self.llm_generator = LLMGenerator(config, gemini_api_key=gemini_api_key, openai_api_key=openai_api_key)
         self.feedback_generator = FeedbackResourceGenerator(config)
         
-        logger.info("Question generator initialized")
+        # Initialize reasoning components
+        self.reasoning_agent = ReasoningAgent(self.llm_generator)
+        self.course_knowledge = CourseKnowledge()
+        self.adaptive_prompts = AdaptivePromptEngine(self.course_knowledge)
+        self.quality_evaluator = QualityEvaluator(self.course_knowledge)
+        
+        logger.info("Question generator initialized with reasoning capabilities")
     
     def generate_questions_for_concept(self, concept_data: Dict) -> Dict:
         """
@@ -55,7 +65,49 @@ class QuestionGenerator:
             'advanced': self._generate_level_questions('advanced', concept_data)
         }
         
-        logger.info(f"Generated {sum(len(result[level]['questions']) for level in result)} total questions")
+        total_questions = sum(len(result[level]['questions']) for level in result)
+        logger.info(f"Generated {total_questions} total questions")
+        
+        # Reflect on generated questions and learn
+        reasoning_metadata = {
+            'reflection': None,
+            'quality': None,
+            'comparison': None
+        }
+        
+        if total_questions > 0:
+            try:
+                # Collect all questions for reflection
+                all_questions = []
+                for level in ['beginner', 'intermediate', 'advanced']:
+                    all_questions.extend(result[level].get('questions', []))
+                
+                # Reflect on questions
+                reflection = self.reasoning_agent.reflect_on_questions(
+                    all_questions, concept_name, course_category, course_category, language
+                )
+                reasoning_metadata['reflection'] = reflection
+                
+                # Update knowledge base
+                domain_hints = [concept_name] if concept_name else None
+                self.course_knowledge.update_knowledge(course_category, reflection, 
+                                                      domain=concept_name if course_category == 'non-programming' else None)
+                
+                # Evaluate quality
+                quality = self.quality_evaluator.evaluate_questions(all_questions, concept_name, course_category)
+                reasoning_metadata['quality'] = quality
+                logger.info(f"Question quality for {concept_name}: {quality.get('overall_score', 0):.1f}/100")
+                
+                # Compare with past
+                comparison = self.quality_evaluator.compare_with_past(quality, course_category)
+                reasoning_metadata['comparison'] = comparison
+                
+            except Exception as e:
+                logger.warning(f"Reasoning/reflection failed (non-critical): {e}")
+        
+        # Add reasoning metadata to result
+        result['reasoning_metadata'] = reasoning_metadata
+        
         return result
     
     def _generate_level_questions(self, level: str, concept_data: Dict) -> Dict:
@@ -136,6 +188,20 @@ class QuestionGenerator:
         questions = []
         max_retries = 3  # Retry up to 3 times for incomplete questions
         
+        # Get adaptive guidance for this course type
+        course_context = self.course_knowledge.get_course_context('programming', [concept] if concept else None)
+        adaptive_strategy = self.course_knowledge.get_adaptive_strategy('programming', concept)
+        
+        # Build adaptive guidance text
+        adaptive_guidance_parts = []
+        if adaptive_strategy.get('best_practices'):
+            adaptive_guidance_parts.append("BEST PRACTICES:")
+            for practice in adaptive_strategy['best_practices'][:2]:
+                adaptive_guidance_parts.append(f"- {practice}")
+        if adaptive_strategy.get('recommended_question_types'):
+            adaptive_guidance_parts.append(f"RECOMMENDED: Focus on {', '.join(adaptive_strategy['recommended_question_types'][:2])}")
+        adaptive_guidance = "\n".join(adaptive_guidance_parts) if adaptive_guidance_parts else None
+        
         for i in range(count):
             question_generated = False
             
@@ -145,7 +211,7 @@ class QuestionGenerator:
                         # MCQ questions
                         template = ProgrammingTemplates.get_beginner_template(concept, language)
                         question = self.llm_generator.generate_mcq_question(
-                            template, concept, language
+                            template, concept, language, adaptive_guidance=adaptive_guidance
                         )
                         feedback = self.feedback_generator.generate_mcq_feedback(
                             question, concept
@@ -155,7 +221,7 @@ class QuestionGenerator:
                         # Code snippet questions
                         template = ProgrammingTemplates.get_intermediate_template(concept, language)
                         question = self.llm_generator.generate_code_snippet_question(
-                            template, concept, language
+                            template, concept, language, adaptive_guidance=adaptive_guidance
                         )
                         feedback = self.feedback_generator.generate_code_feedback(
                             question, concept, language
@@ -165,7 +231,7 @@ class QuestionGenerator:
                         # Full programming problems
                         template = ProgrammingTemplates.get_advanced_template(concept, language)
                         question = self.llm_generator.generate_programming_problem(
-                            template, concept, language
+                            template, concept, language, adaptive_guidance=adaptive_guidance
                         )
                         feedback = self.feedback_generator.generate_problem_feedback(
                             question, concept, language
@@ -304,13 +370,18 @@ class QuestionGenerator:
             try:
                 questions = self.generate_questions_for_concept(concept_data)
                 
+                # Extract reasoning metadata if present
+                reasoning_metadata = questions.get('reasoning_metadata')
+                levels = {k: v for k, v in questions.items() if k != 'reasoning_metadata'}
+                
                 all_questions[concept_key] = {
                     'concept_name': concept_data['concept_name'],
                     'course_category': concept_data['course_category'],
                     'programming_language': concept_data.get('programming_language'),
                     'affected_students': concept_data['affected_students'],
                     'total_incorrect': concept_data.get('total_incorrect', 0),
-                    'levels': questions
+                    'levels': levels,
+                    'reasoning_metadata': reasoning_metadata
                 }
                 
             except Exception as e:

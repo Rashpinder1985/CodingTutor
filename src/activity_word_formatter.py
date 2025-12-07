@@ -331,7 +331,45 @@ def _add_q1_section(doc: Document, q1_results: Dict):
         p.add_run(f'"{response_text}"')
         p.style = 'Quote'
         
-        doc.add_paragraph()  # Spacing
+            doc.add_paragraph()  # Spacing
+
+
+def _add_q3_theme_table(doc: Document, themes: Dict):
+    """Helper to add a table for Q3 themes."""
+    if not themes:
+        doc.add_paragraph('No themes to display.')
+        return
+
+    table = doc.add_table(rows=1, cols=3)
+    table.style = 'Light Grid Accent 1'
+
+    # Header row
+    header_cells = table.rows[0].cells
+    header_cells[0].text = 'Theme'
+    header_cells[1].text = 'Example Student Insight'
+    header_cells[2].text = 'Frequency'
+
+    # Make header bold
+    for cell in header_cells:
+        for paragraph in cell.paragraphs:
+            for run in paragraph.runs:
+                run.bold = True
+
+    # Add theme rows
+    for theme_name, theme_data in list(themes.items())[:10]:  # Top 10 themes
+        responses = theme_data.get('responses', [])
+        frequency = theme_data.get('frequency', len(responses))
+
+        if responses:
+            # Get first example response
+            example_response = responses[0].get('response', 'No response')
+            if len(example_response) > 150:
+                example_response = example_response[:150] + '...'
+            
+            row_cells = table.add_row().cells
+            row_cells[0].text = theme_name
+            row_cells[1].text = example_response
+            row_cells[2].text = str(frequency)
 
 
 def _add_q2_section(doc: Document, q2_results: Dict):
@@ -426,72 +464,54 @@ def _add_q3_section(doc: Document, q3_results: Dict):
     
     doc.add_paragraph()
     
-    # Display content-related themes
+    # Display categorized themes - check both direct access and themes_discovered structure
     content_themes = q3_results.get('content_themes', {})
     pedagogy_themes = q3_results.get('pedagogy_themes', {})
     
-    if content_themes or pedagogy_themes:
-        doc.add_heading('1 Aspect They Found Interesting', 2)
-        
-        # Create table: Concept/Theme | Example Phrasing
-        if content_themes or pedagogy_themes:
-            table = doc.add_table(rows=1, cols=2)
-            table.style = 'Light Grid Accent 1'
-            
-            # Header row
-            header_cells = table.rows[0].cells
-            header_cells[0].text = 'Concept/Theme'
-            header_cells[1].text = 'Example Phrasing'
-            
-            # Make header bold
-            for cell in header_cells:
-                for paragraph in cell.paragraphs:
-                    for run in paragraph.runs:
-                        run.bold = True
-            
-            # Add content-related themes
-            for theme_name, theme_data in content_themes.items():
-                example = theme_data.get('example_phrasing', '')
-                if len(example) > 200:
-                    example = example[:200] + '...'
-                
-                row_cells = table.add_row().cells
-                row_cells[0].text = theme_name
-                row_cells[1].text = example
-            
-            # Add pedagogy-related themes (with visual distinction)
-            for theme_name, theme_data in pedagogy_themes.items():
-                example = theme_data.get('example_phrasing', '')
-                if len(example) > 200:
-                    example = example[:200] + '...'
-                
-                row_cells = table.add_row().cells
-                # Mark pedagogy themes (could use formatting if needed)
-                row_cells[0].text = theme_name
-                row_cells[1].text = example
-            
-            doc.add_paragraph()
-            
-            # Add categorization labels
-            if content_themes and pedagogy_themes:
-                p = doc.add_paragraph()
-                p.add_run('Content-related: ').bold = True
-                p.add_run('Themes focusing on concepts, topics, and subject matter.')
-                doc.add_paragraph()
-                p = doc.add_paragraph()
-                p.add_run('Pedagogy-related: ').bold = True
-                p.add_run('Themes focusing on teaching methods, activities, and learning approaches.')
-                doc.add_paragraph()
+    # Also check themes_discovered structure (from newer version)
+    themes_discovered = q3_results.get('themes_discovered', {})
+    if isinstance(themes_discovered, dict):
+        if 'content' in themes_discovered and not content_themes:
+            content_themes = themes_discovered['content']
+        if 'pedagogy' in themes_discovered and not pedagogy_themes:
+            pedagogy_themes = themes_discovered['pedagogy']
     
-    # Also show top 10 responses
+    if content_themes or pedagogy_themes:
+        # Display content-related themes separately
+        if content_themes:
+            doc.add_heading('Content-Related Interests (What they want to learn more about)', 2)
+            _add_q3_theme_table(doc, content_themes)
+            doc.add_paragraph()
+        
+        # Display pedagogy-related themes separately
+        if pedagogy_themes:
+            doc.add_heading('Pedagogy-Related Interests (How they want to learn)', 2)
+            _add_q3_theme_table(doc, pedagogy_themes)
+            doc.add_paragraph()
+        
+        # Add categorization explanation
+        if content_themes and pedagogy_themes:
+            p = doc.add_paragraph()
+            p.add_run('Note: ').bold = True
+            p.add_run('Responses are classified as Content-related (focusing on concepts and topics) or Pedagogy-related (focusing on teaching methods and learning approaches).')
+            doc.add_paragraph()
+    
+    # Also show top 10 responses with classification
     top_responses = q3_results.get('top_10_responses', [])
     
     if top_responses:
         doc.add_heading(f'Top {len(top_responses)} Student Insights', 2)
         
         for i, resp in enumerate(top_responses, 1):
-            # Simple heading: just number and student ID
-            doc.add_heading(f'{i}. Student {resp.get("student_id", "Unknown")}', 3)
+            # Simple heading: number, student ID, and classification
+            category = resp.get('category', '')
+            category_label = ''
+            if category == 'content':
+                category_label = ' (Content-related)'
+            elif category == 'pedagogy':
+                category_label = ' (Pedagogy-related)'
+            
+            doc.add_heading(f'{i}. Student {resp.get("student_id", "Unknown")}{category_label}', 3)
             
             # Response text - clean and simple
             p = doc.add_paragraph()

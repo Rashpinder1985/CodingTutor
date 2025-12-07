@@ -333,7 +333,8 @@ class LLMGenerator:
         # All attempts failed
         raise Exception(f"Failed to generate content after all retry attempts and fallbacks")
     
-    def generate_mcq_question(self, template: Dict, concept: str, language: Optional[str] = None) -> Dict:
+    def generate_mcq_question(self, template: Dict, concept: str, language: Optional[str] = None, 
+                             adaptive_guidance: Optional[str] = None) -> Dict:
         """
         Generate a multiple choice question based on template.
         
@@ -341,6 +342,7 @@ class LLMGenerator:
             template: Question template dictionary
             concept: Concept to test
             language: Programming language (if applicable)
+            adaptive_guidance: Optional adaptive guidance from reasoning agent
             
         Returns:
             Complete question dictionary with options and answer
@@ -358,7 +360,13 @@ Requirements:
 3. Ensure only one correct answer
 4. Make distractors plausible but clearly incorrect
 5. Keep language appropriate for {template['difficulty']} level
-6. If code is needed, provide properly formatted code
+6. If code is needed, provide properly formatted code"""
+        
+        # Add adaptive guidance if provided
+        if adaptive_guidance:
+            prompt += f"\n\n{adaptive_guidance}"
+        
+        prompt += """
 
 Return ONLY a JSON object with this structure:
 {{
@@ -395,7 +403,8 @@ Return ONLY a JSON object with this structure:
             logger.error(error_msg)
             raise ValueError(error_msg)
     
-    def generate_code_snippet_question(self, template: Dict, concept: str, language: str) -> Dict:
+    def generate_code_snippet_question(self, template: Dict, concept: str, language: str,
+                                      adaptive_guidance: Optional[str] = None) -> Dict:
         """
         Generate a code snippet question (debugging, completion, etc.).
         
@@ -462,7 +471,8 @@ Example for debugging:
             logger.error(error_msg)
             raise ValueError(error_msg)
     
-    def generate_programming_problem(self, template: Dict, concept: str, language: str) -> Dict:
+    def generate_programming_problem(self, template: Dict, concept: str, language: str,
+                                     adaptive_guidance: Optional[str] = None) -> Dict:
         """
         Generate a full programming problem with test cases.
         
@@ -501,6 +511,10 @@ Return ONLY valid JSON (no markdown, no extra text):
     "hints": ["hint 1 about approach", "hint 2 about edge cases"],
     "solution_approach": "detailed step-by-step approach to solve this problem, at least 30 words"
 }}"""
+        
+        # Add adaptive guidance if provided
+        if adaptive_guidance:
+            prompt += f"\n\n{adaptive_guidance}"
 
         messages = [
             {"role": "system", "content": "You are an expert programming educator creating challenging but educational problems."},
@@ -659,13 +673,14 @@ Keep it concise but informative."""
         
         return self._make_api_call(messages, temperature=0.7)
     
-    def generate_content(self, prompt: str, system_message: str = None) -> str:
+    def generate_content(self, prompt: str, system_message: str = None, temperature: float = None) -> str:
         """
         Generate content from a simple prompt string.
         
         Args:
             prompt: User prompt text
             system_message: Optional system message (defaults to generic assistant)
+            temperature: Optional temperature override (defaults to config temperature)
             
         Returns:
             Generated text response
@@ -678,5 +693,6 @@ Keep it concise but informative."""
             {"role": "user", "content": prompt}
         ]
         
-        return self._make_api_call(messages, temperature=self.temperature)
+        temp = temperature if temperature is not None else self.temperature
+        return self._make_api_call(messages, temperature=temp)
 

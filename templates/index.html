@@ -106,6 +106,31 @@
             color: #667eea;
             margin-bottom: 10px;
         }
+        .reasoning-score {
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        .reasoning-score.excellent { background: #28a745; color: white; }
+        .reasoning-score.good { background: #ffc107; color: #000; }
+        .reasoning-score.needs-improvement { background: #dc3545; color: white; }
+        .reasoning-insight-item {
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid #667eea;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 5px;
+        }
+        .reasoning-trend {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .trend-up { color: #28a745; }
+        .trend-down { color: #dc3545; }
+        .trend-stable { color: #6c757d; }
         .info-card {
             background: #f8f9fa;
             padding: 20px;
@@ -346,6 +371,27 @@
         </div>
 
         <!-- Results -->
+        <!-- Reasoning Agent Insights Panel -->
+        <div id="reasoningPanel" class="card d-none" style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); border: 2px solid #667eea;">
+            <div class="card-header" style="background: transparent; border-bottom: 2px solid #667eea; cursor: pointer;" onclick="toggleReasoningPanel()">
+                <h5 class="mb-0">
+                    <i class="bi bi-robot"></i> Reasoning Agent Insights
+                    <i class="bi bi-chevron-down float-end" id="reasoningChevron"></i>
+                </h5>
+            </div>
+            <div class="card-body" id="reasoningContent" style="display: none;">
+                <div id="reasoningStatus" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Reasoning agent analyzing quality...</p>
+                </div>
+                <div id="reasoningInsights" style="display: none;">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
         <div id="resultsCard" class="card result-card d-none">
             <h5 class="card-title"><i class="bi bi-check-circle-fill text-success"></i> File Processed Successfully!</h5>
             <hr>
@@ -615,8 +661,18 @@
                 // Hide loading
                 loadingCard.classList.add('d-none');
 
+                // Show reasoning status during processing
+                showReasoningStatus('Reasoning agent analyzing quality and updating knowledge base...');
+                
                 // Show activity results
                 displayActivityResults(data);
+                
+                // Display reasoning insights if available
+                if (data.reasoning_metadata) {
+                    displayReasoningInsights(data.reasoning_metadata, 'activity');
+                } else {
+                    document.getElementById('reasoningPanel').classList.add('d-none');
+                }
 
             } catch (error) {
                 loadingCard.classList.add('d-none');
@@ -757,6 +813,12 @@
                 status.textContent = 'Complete';
                 status.className = 'status-badge status-complete';
                 downloadBtn.href = `/download/${data.output_file}`;
+                
+                // Display reasoning insights if available
+                if (data.reasoning_metadata) {
+                    const conceptName = conceptsData[conceptKey]?.name || conceptKey;
+                    displayReasoningInsights(data.reasoning_metadata, 'questions', conceptName);
+                }
                 downloadBtn.classList.remove('d-none');
 
                 // Show success message
@@ -1041,6 +1103,143 @@
                 }
             } catch (error) {
                 showMessage('Error: ' + error.message, 'danger');
+            }
+        }
+
+        // Reasoning Agent Panel Functions
+        function toggleReasoningPanel() {
+            const content = document.getElementById('reasoningContent');
+            const chevron = document.getElementById('reasoningChevron');
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                chevron.classList.remove('bi-chevron-down');
+                chevron.classList.add('bi-chevron-up');
+            } else {
+                content.style.display = 'none';
+                chevron.classList.remove('bi-chevron-up');
+                chevron.classList.add('bi-chevron-down');
+            }
+        }
+
+        function displayReasoningInsights(reasoningMetadata, mode = 'questions', conceptName = '') {
+            const panel = document.getElementById('reasoningPanel');
+            const statusDiv = document.getElementById('reasoningStatus');
+            const insightsDiv = document.getElementById('reasoningInsights');
+            
+            if (!reasoningMetadata || (!reasoningMetadata.reflection && !reasoningMetadata.quality)) {
+                panel.classList.add('d-none');
+                return;
+            }
+            
+            panel.classList.remove('d-none');
+            statusDiv.style.display = 'none';
+            insightsDiv.style.display = 'block';
+            
+            const reflection = reasoningMetadata.reflection || {};
+            const quality = reasoningMetadata.quality || {};
+            const comparison = reasoningMetadata.comparison || {};
+            
+            const qualityScore = quality.overall_score || reflection.quality_score || 0;
+            let scoreClass = 'needs-improvement';
+            if (qualityScore >= 80) scoreClass = 'excellent';
+            else if (qualityScore >= 60) scoreClass = 'good';
+            
+            let trendIcon = '→';
+            let trendClass = 'trend-stable';
+            let trendText = 'Stable';
+            if (comparison.is_improving) {
+                trendIcon = '↑';
+                trendClass = 'trend-up';
+                trendText = `Improving (+${comparison.improvement?.toFixed(1) || 0}%)`;
+            } else if (comparison.improvement < 0) {
+                trendIcon = '↓';
+                trendClass = 'trend-down';
+                trendText = `Declining (${comparison.improvement?.toFixed(1) || 0}%)`;
+            }
+            
+            let insightsHTML = `
+                <div class="text-center mb-4">
+                    <div class="reasoning-score ${scoreClass}">
+                        ${qualityScore.toFixed(1)}/100
+                    </div>
+                    <p class="mt-2"><strong>Quality Score</strong></p>
+                    ${comparison.trend ? `
+                        <p class="reasoning-trend ${trendClass}">
+                            ${trendIcon} ${trendText}
+                        </p>
+                    ` : ''}
+                </div>
+                
+                ${reflection.strengths && reflection.strengths.length > 0 ? `
+                <div class="mb-3">
+                    <h6><i class="bi bi-check-circle-fill text-success"></i> Strengths:</h6>
+                    ${reflection.strengths.map(s => `
+                        <div class="reasoning-insight-item">
+                            <i class="bi bi-arrow-right"></i> ${s}
+                        </div>
+                    `).join('')}
+                </div>
+                ` : ''}
+                
+                ${reflection.improvements && reflection.improvements.length > 0 ? `
+                <div class="mb-3">
+                    <h6><i class="bi bi-lightbulb-fill text-warning"></i> Improvement Suggestions:</h6>
+                    ${reflection.improvements.map(i => `
+                        <div class="reasoning-insight-item">
+                            <i class="bi bi-arrow-right"></i> ${i}
+                        </div>
+                    `).join('')}
+                </div>
+                ` : ''}
+                
+                ${reflection.learnings && Object.keys(reflection.learnings).length > 0 ? `
+                <div class="mb-3">
+                    <h6><i class="bi bi-book-fill text-info"></i> Learned Patterns:</h6>
+                    ${Object.entries(reflection.learnings).map(([key, value]) => {
+                        if (Array.isArray(value)) {
+                            return `<div class="reasoning-insight-item">
+                                <strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value.join(', ')}
+                            </div>`;
+                        } else if (typeof value === 'string') {
+                            return `<div class="reasoning-insight-item">
+                                <strong>${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:</strong> ${value}
+                            </div>`;
+                        }
+                        return '';
+                    }).filter(x => x).join('')}
+                </div>
+                ` : ''}
+            `;
+            
+            insightsDiv.innerHTML = insightsHTML;
+            
+            // Auto-expand panel
+            const content = document.getElementById('reasoningContent');
+            if (content.style.display === 'none') {
+                toggleReasoningPanel();
+            }
+        }
+
+        function showReasoningStatus(message) {
+            const panel = document.getElementById('reasoningPanel');
+            const statusDiv = document.getElementById('reasoningStatus');
+            const insightsDiv = document.getElementById('reasoningInsights');
+            
+            panel.classList.remove('d-none');
+            statusDiv.style.display = 'block';
+            insightsDiv.style.display = 'none';
+            
+            statusDiv.innerHTML = `
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">${message}</p>
+            `;
+            
+            // Auto-expand panel
+            const content = document.getElementById('reasoningContent');
+            if (content.style.display === 'none') {
+                toggleReasoningPanel();
             }
         }
 

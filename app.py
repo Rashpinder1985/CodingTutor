@@ -46,6 +46,7 @@ from src.word_formatter import create_word_document
 from src.database import db, init_db, get_db_uri
 from src.auth import register_user, login_user, get_current_user, require_auth, require_api_key
 from src.api_key_manager import save_user_api_keys, get_user_api_keys, get_api_key_status
+from src.course_knowledge import CourseKnowledge
 
 app = Flask(__name__)
 # Use SECRET_KEY from environment or default (change in production!)
@@ -499,6 +500,11 @@ def generate_concept():
             if 'advanced' in levels and 'questions' in levels['advanced']:
                 advanced_count = len(levels['advanced']['questions'])
         
+        # Extract reasoning metadata if available
+        reasoning_metadata = None
+        if questions_data and concept_key in questions_data:
+            reasoning_metadata = questions_data[concept_key].get('reasoning_metadata')
+        
         # Return response
         return jsonify({
             'success': True,
@@ -508,7 +514,8 @@ def generate_concept():
                 'beginner': beginner_count,
                 'intermediate': intermediate_count,
                 'advanced': advanced_count
-            }
+            },
+            'reasoning_metadata': reasoning_metadata
         })
         
     except Exception as e:
@@ -630,6 +637,9 @@ def analyze_activity():
         
         logger.info(f"Activity analysis complete: {output_filename}")
         
+        # Extract reasoning metadata if available
+        reasoning_metadata = results.get('reasoning_metadata')
+        
         # Return results
         return jsonify({
             'success': True,
@@ -645,7 +655,8 @@ def analyze_activity():
                 'q3_selected': results['summary']['q3_top_selected'],
                 'scoring_method': results['metadata']['scoring_method']
             },
-            'warnings': warnings[:10]  # Include first 10 warnings
+            'warnings': warnings[:10],  # Include first 10 warnings
+            'reasoning_metadata': reasoning_metadata
         })
     
     except ValueError as ve:
