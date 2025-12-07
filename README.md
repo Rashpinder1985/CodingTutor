@@ -74,9 +74,9 @@ For courses with **open-ended reflections** (activity-based learning):
 - **Cognitive Domain**: Categorizes learning quality (concept alignment)
 - **Affective Domain**: Measures student engagement and exploration
 - **Top 10 Best Responses**: Selected using keyword extraction + thematic clustering + LLM scoring
-- **Concept-Based Grouping**: Q2 questions grouped by activity concepts with frequency
-- **Content vs Pedagogy**: Q3 responses classified by theme category
-- **Teacher-Friendly Report**: Simple Student ID + Response format
+- **Concept-Based Grouping**: Students' responses for questions asked by students related to the activity grouped by activity concepts, with frequency
+- **Content vs Pedagogy**:  responses classified by theme category
+- **Teacher-Friendly Report**
 
 ---
 
@@ -294,19 +294,7 @@ See [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive testing instructions.
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
----
 
-## 📄 License
-
-See [LICENSE](LICENSE) file for details.
-
----
-
-## ⭐ Star History
-
-If you find this project helpful, please consider giving it a star!
-
----
 
 ## 🙏 Acknowledgments
 
