@@ -1,6 +1,16 @@
 # Exit Ticket Analysis Agent
 
-An AI-powered web application for educators to analyze student exit tickets and generate insights. Features user authentication, per-user API key management, and two powerful analysis modes for both programming and non-programming courses.
+An AI-powered reasoning agent for educators to analyze student exit tickets and generate insights. Features user authentication, per-user API key management, self-learning capabilities, and two powerful analysis modes for both programming and non-programming courses.
+
+## 🤖 Reasoning Agent Capabilities
+
+The agent **learns and improves** with each analysis:
+
+- **Self-Reflection**: Evaluates its own question generation and analysis quality
+- **Pattern Learning**: Stores and retrieves effective patterns from different courses
+- **Adaptive Prompts**: Dynamically adjusts prompts based on learned best practices
+- **Quality Tracking**: Monitors quality scores and trends over time
+- **Visual Insights**: Web UI panel shows reasoning agent's work in real-time
 
 ## 🚀 Quick Start
 
@@ -26,7 +36,7 @@ Open **http://localhost:5000** and register/login to get started!
 
 ### Cloud Deployment
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for Railway.app and other platform deployment instructions.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for Railway.app deployment instructions.
 
 ---
 
@@ -44,6 +54,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for Railway.app and other platform deployment
 For courses with **correct/incorrect answers** (MCQs, coding questions):
 - Upload exit ticket with student responses
 - AI generates adaptive questions at 3 levels (beginner, intermediate, advanced)
+- **Learning Resources**: Automatically included in generated reports
 - Download Word documents with practice questions
 - Supports Python, Java, C++, JavaScript
 - Concept-by-concept generation
@@ -56,6 +67,7 @@ For courses with **open-ended reflections** (activity-based learning):
 - **Cognitive Domain Analysis**: "Learned Well" vs "Needs Reinforcement"
 - **Affective Domain Analysis**: "Wants to Explore" vs "General Interest"
 - **Concept-Based Theming**: Groups responses by activity concepts
+- **Content vs Pedagogy Classification**: Responses classified by theme category
 - Download teacher-friendly Word report with top 10 responses
 
 ---
@@ -64,7 +76,8 @@ For courses with **open-ended reflections** (activity-based learning):
 
 ### Programming Course Features
 - **Multi-LLM Support**: Ollama (local) → Gemini → OpenAI with automatic fallback
-- **Google Forms Support**: Upload directly from Google Forms/Microsoft Forms
+- **Adaptive Learning**: Agent learns from past question generation to improve quality
+- **Learning Resources**: Curated resources included in question reports
 - **Multi-Level Questions**: Beginner, Intermediate, Advanced difficulty
 - **Multi-Language**: Python, Java, C++, JavaScript
 - **Word Document Output**: Professional formatted question papers
@@ -74,9 +87,16 @@ For courses with **open-ended reflections** (activity-based learning):
 - **Cognitive Domain**: Categorizes learning quality (concept alignment)
 - **Affective Domain**: Measures student engagement and exploration
 - **Top 10 Best Responses**: Selected using keyword extraction + thematic clustering + LLM scoring
-- **Concept-Based Grouping**: Students' responses for questions asked by students related to the activity grouped by activity concepts, with frequency
-- **Content vs Pedagogy**:  responses classified by theme category
-- **Teacher-Friendly Report**
+- **Concept-Based Grouping**: Students' questions grouped by activity concepts with frequency
+- **Content vs Pedagogy**: Q3 responses classified and displayed separately
+- **Teacher-Friendly Report**: Comprehensive Word document with all insights
+
+### Reasoning Agent Features
+- **Quality Scores**: Real-time quality metrics (0-100) for questions and analysis
+- **Reflection Insights**: Shows strengths, improvements, and learned patterns
+- **Quality Trends**: Tracks improvement over time (↑ improving, ↓ declining, → stable)
+- **Adaptive Strategies**: Applies learned best practices automatically
+- **Web UI Panel**: Collapsible panel showing reasoning agent's work
 
 ---
 
@@ -140,7 +160,7 @@ For courses with **open-ended reflections** (activity-based learning):
    ```
 
 4. **Set up database:**
-   - **Local (SQLite)**: Database will be created automatically as `app.db`
+   - **Local (SQLite)**: Database will be created automatically as `instance/app.db`
    - **Production (PostgreSQL)**: Set `DATABASE_URL` environment variable
 
 5. **Set environment variables (optional):**
@@ -188,7 +208,8 @@ For courses with **open-ended reflections** (activity-based learning):
 2. Upload exit ticket Excel file
 3. Select concepts to generate questions for
 4. Click "Generate" for each concept
-5. Download Word documents with practice questions
+5. **View Reasoning Insights**: Panel shows quality scores and learned patterns
+6. Download Word documents with practice questions and learning resources
 
 ### Activity Analysis Mode
 
@@ -198,10 +219,12 @@ For courses with **open-ended reflections** (activity-based learning):
    - Activity template (`.txt` or `.docx`)
 3. Select AI provider (Gemini recommended)
 4. Click "Analyze Activity"
-5. Download teacher-friendly Word report with:
+5. **View Reasoning Insights**: Panel shows analysis quality and improvements
+6. Download teacher-friendly Word report with:
    - Visual analytics dashboard
    - Top 10 responses per question
    - Concept-based themes
+   - Content vs Pedagogy classification
    - Cognitive and affective domain analysis
 
 ---
@@ -216,20 +239,30 @@ For courses with **open-ended reflections** (activity-based learning):
 ├── Procfile                        # Process configuration
 ├── runtime.txt                     # Python version
 ├── templates/
-│   └── index.html                  # Web UI with authentication
+│   └── index.html                  # Web UI with authentication & reasoning panel
 ├── src/
 │   ├── database.py                 # Database models (User, UserAPIKey)
 │   ├── auth.py                     # Authentication system
 │   ├── api_key_manager.py          # API key management
+│   ├── reasoning_agent.py          # Self-reflection and learning module
+│   ├── course_knowledge.py         # Knowledge base for learned patterns
+│   ├── adaptive_prompts.py         # Adaptive prompt engineering
+│   ├── quality_evaluator.py        # Quality scoring and tracking
 │   ├── input_processor.py          # Programming exit ticket processor
-│   ├── question_generator.py       # Question generation logic
+│   ├── question_generator.py       # Question generation with reasoning
 │   ├── word_formatter.py           # Question Word formatter
 │   ├── activity_input_processor.py # Activity exit ticket processor
-│   ├── activity_analyzer.py        # Activity analysis with NLP
+│   ├── activity_analyzer.py        # Activity analysis with NLP & reasoning
 │   ├── activity_word_formatter.py  # Teacher-friendly report formatter
 │   ├── keyword_extractor.py        # TF-IDF keyword extraction
 │   ├── thematic_analyzer.py         # KMeans thematic clustering
-│   └── llm_generator.py            # Multi-provider LLM interface
+│   ├── llm_generator.py            # Multi-provider LLM interface
+│   ├── feedback_generator.py       # Learning resources generator
+│   ├── format_converter.py         # Format conversion utilities
+│   ├── output_formatter.py         # Output formatting utilities
+│   └── templates/
+│       ├── programming_templates.py    # Programming question templates
+│       └── non_programming_templates.py # Non-programming templates
 ├── sample_exit_ticket.xlsx         # Sample for programming mode
 ├── sample_activity_exit_ticket.xlsx # Sample for activity mode
 └── sample_activity_template.txt    # Sample activity description
@@ -252,9 +285,9 @@ llm:
 activity_analysis:
   top_responses_per_question: 10
   scoring_weights:
-    keyword_match: 0.3
-    llm_quality: 0.5
-    theme_diversity: 0.2
+    keyword_match: 0.3  # Concept alignment
+    llm_quality: 0.5    # LLM-assessed quality
+    theme_diversity: 0.2 # Theme diversity bonus
 ```
 
 ---
@@ -282,7 +315,7 @@ See [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive testing instructions.
 
 ## 📚 Documentation
 
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Cloud deployment guide
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Cloud deployment guide (Railway.app)
 - [TESTING_GUIDE.md](TESTING_GUIDE.md) - Testing instructions
 - [INSTALLATION.md](INSTALLATION.md) - Detailed installation guide
 - [USAGE_GUIDE.md](USAGE_GUIDE.md) - Usage instructions
@@ -294,10 +327,17 @@ See [TESTING_GUIDE.md](TESTING_GUIDE.md) for comprehensive testing instructions.
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-
+---
 
 ## 🙏 Acknowledgments
 
 - Built with Flask, SQLAlchemy, and multiple LLM providers
 - Uses NLTK and scikit-learn for NLP analysis
+- Reasoning agent powered by self-reflection and adaptive learning
 - Deployed on Railway.app
+
+---
+
+## ⭐ Star History
+
+If you find this project helpful, please consider giving it a star!
